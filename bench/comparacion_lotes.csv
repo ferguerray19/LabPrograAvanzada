@@ -1,0 +1,5 @@
+experimento,arch,workers,batch_size,queue_maxsize,mediana_s,tiempos_s,eventos_por_segundo,total_eventos,puts_aproximados
+lotes,queue,8,1,64,11.425,11.458;11.281;11.425,87523.6,1000000,1000000
+lotes,queue,8,100,64,0.8,0.800;0.792;0.812,1250095.5,1000000,10000
+lotes,queue,8,1000,64,0.729,0.757;0.729;0.728,1371750.6,1000000,1000
+lotes,queue,8,10000,64,0.809,0.803;0.810;0.809,1235663.4,1000000,100

@@ -1,0 +1,4 @@
+config,arch,queue_maxsize,procesos,pico_proceso_mb,pico_conjunto_mb
+shard,shard,,9,29.7,258.1
+queue-maxsize-8,queue,8,10,32.4,275.7
+queue-maxsize-1024,queue,1024,10,32.5,305.9

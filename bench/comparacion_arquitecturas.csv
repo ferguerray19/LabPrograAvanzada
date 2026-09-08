@@ -1,0 +1,3 @@
+experimento,arch,workers,batch_size,queue_maxsize,mediana_s,tiempos_s,eventos_por_segundo,total_eventos
+arquitectura,shard,8,10000,,5.565,5.628;5.565;5.487,1797014.2,10000000
+arquitectura,queue,8,10000,64,6.015,6.144;6.015;5.997,1662454.8,10000000
