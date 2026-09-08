@@ -1,0 +1,39 @@
+# ---------------------------------------------------------------------------
+# Dataset crudo. NO se versiona.
+#
+# Son ~1,9 GB. GitHub rechaza archivos sobre 100 MB, y aunque los aceptara, un
+# solo commit con el dataset deja el historial del repositorio inutilizable
+# para siempre: `git clone` pasa a descargar ese peso en cada copia, y borrarlo
+# despues no lo saca del historial sin reescribirlo entero.
+#
+# Este bloque tiene que estar desde el PRIMER commit.
+# ---------------------------------------------------------------------------
+data/raw/*
+!data/raw/.gitkeep
+data/bench_tmp/
+*.jsonl
+
+# Excepcion: la muestra de 50.000 eventos SI se versiona (9 MB).
+!data/muestra/
+!data/muestra/*.jsonl
+
+# Salidas de la campana de mediciones: los CSV crudos SI se versionan,
+# porque son la evidencia del informe. Las figuras se regeneran.
+docs/figuras/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Perfiles de cProfile
+*.prof
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
