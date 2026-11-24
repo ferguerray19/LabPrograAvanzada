@@ -1,0 +1,23 @@
+{
+  "filas_silver": 6395323,
+  "filas_bronze": 10000014,
+  "filas_simulador": 6395325,
+  "en_falla": 436218,
+  "no_confiables": 124219,
+  "por_dia": {
+    "fecha=2026-01-12": 926093,
+    "fecha=2026-01-13": 942156,
+    "fecha=2026-01-14": 897027,
+    "fecha=2026-01-15": 942992,
+    "fecha=2026-01-16": 912973,
+    "fecha=2026-01-17": 887040,
+    "fecha=2026-01-18": 887042
+  },
+  "calidad": {
+    "ok": 6271104,
+    "asentamiento": 123241,
+    "deriva": 607,
+    "pegado": 371
+  },
+  "esquema": "timestamp_utc: timestamp[ns]\nentidad_id: string\nentidad_tipo: string\nalimentador_id: int32\nvariable: string\nvalor: double\nunidad: string\ncalidad_sensor: string\nsensor_confiable: bool\nfalla_id: string\ntipo_falla: string\nseveridad: string\nen_falla: bool not null"
+}

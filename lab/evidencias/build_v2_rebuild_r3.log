@@ -1,0 +1,70 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 4.59kB done
+#1 DONE 0.0s
+
+#2 resolve image config for docker-image://docker.io/docker/dockerfile:1
+#2 DONE 0.3s
+
+#3 docker-image://docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
+#3 resolve docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32 0.0s done
+#3 CACHED
+
+#4 [internal] load metadata for docker.io/library/python:3.12-slim
+#4 DONE 0.3s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 1.24kB done
+#5 DONE 0.0s
+
+#6 [builder 1/5] FROM docker.io/library/python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f
+#6 resolve docker.io/library/python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f 0.0s done
+#6 DONE 0.0s
+
+#7 [internal] load build context
+#7 transferring context: 1.02kB done
+#7 DONE 0.0s
+
+#8 [runtime 4/7] WORKDIR /app
+#8 CACHED
+
+#9 [builder 4/5] COPY requirements.txt .
+#9 CACHED
+
+#10 [runtime 3/7] RUN groupadd --gid 10001 appgroup  && useradd --uid 10001 --gid appgroup --no-create-home             --home-dir /nonexistent --shell /usr/sbin/nologin appuser
+#10 CACHED
+
+#11 [builder 2/5] RUN python -m venv --without-pip /opt/venv
+#11 CACHED
+
+#12 [builder 3/5] WORKDIR /app
+#12 CACHED
+
+#13 [builder 5/5] RUN pip --python /opt/venv/bin/python install --no-cache-dir -r requirements.txt
+#13 CACHED
+
+#14 [runtime 2/7] RUN apt-get update  && apt-get install -y --no-install-recommends tini  && rm -rf /var/lib/apt/lists/*
+#14 CACHED
+
+#15 [runtime 5/7] COPY --from=builder /opt/venv /opt/venv
+#15 CACHED
+
+#16 [runtime 6/7] COPY src/ ./src/
+#16 DONE 0.0s
+
+#17 [runtime 7/7] RUN mkdir -p /app/data && chown appuser:appgroup /app/data
+#17 DONE 0.2s
+
+#18 exporting to image
+#18 exporting layers 0.1s done
+#18 exporting manifest sha256:4122cd1386f07581071a35e2b898b1525a83260ae11c09dd34e25a302b534e7c done
+#18 exporting config sha256:dd46e0522254ba49b51b1a58edbc412441e25c0faca531cca9588ec7d2bddb24 done
+#18 exporting attestation manifest sha256:92998298ed1025bda3f6557d24c215fc783f5aa39dde4ec5eb8a72bd7cc0e6a7 0.0s done
+#18 exporting manifest list sha256:d41dd119697f0469ceae8312d19bb927d0438aff73b2a12aec14eae733cde280
+#18 exporting manifest list sha256:d41dd119697f0469ceae8312d19bb927d0438aff73b2a12aec14eae733cde280 0.0s done
+#18 naming to docker.io/library/proyecto:v2 done
+#18 unpacking to docker.io/library/proyecto:v2 0.0s done
+#18 DONE 0.2s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/is6i69ifio4iq0dtmj424kumt

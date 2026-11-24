@@ -1,0 +1,12 @@
+repeticion 1: docker stop sin-init-def (v0, sin --stop-timeout)
+  evento: 1790634125694828487 signal=15
+  evento: 1790634128714346524 signal=9
+  plazo SIGTERM->SIGKILL segun el daemon: 3.02 s | time docker stop: 3.4 s | ExitCode=137
+repeticion 2: docker stop sin-init-def (v0, sin --stop-timeout)
+  evento: 1790634134143792788 signal=15
+  evento: 1790634137163691066 signal=9
+  plazo SIGTERM->SIGKILL segun el daemon: 3.02 s | time docker stop: 3.4 s | ExitCode=137
+repeticion 3: docker stop sin-init-def (v0, sin --stop-timeout)
+  evento: 1790634142593006816 signal=15
+  evento: 1790634145614502442 signal=9
+  plazo SIGTERM->SIGKILL segun el daemon: 3.02 s | time docker stop: 3.4 s | ExitCode=137

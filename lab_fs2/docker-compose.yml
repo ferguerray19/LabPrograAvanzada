@@ -42,6 +42,10 @@ services:
       --host spark-master
       --port 7077
       --webui-port 8080
+    # Límite de CPU: sin él, cada contenedor ve TODOS los CPUs del PC y la JVM
+    # dimensiona sus hilos internos (GC, compilador) para todos ellos. El master
+    # solo coordina, medio core le basta.
+    cpus: 0.5
     ports:
       - "${PUERTO_MASTER_UI:-8080}:8080"   # UI del clúster
       - "${PUERTO_MASTER:-7077}:7077"      # puerto de registro de workers/driver
@@ -66,6 +70,9 @@ services:
     depends_on:
       spark-master:
         condition: service_healthy
+    # Docker le da a cada worker exactamente los cores que anuncia a Spark: así el
+    # clúster usa WORKERS x CORES CPUs del PC y no todos los que haya.
+    cpus: ${SPARK_WORKER_CORES:-2}
     deploy:
       replicas: ${SPARK_WORKERS:-2}
     # Rango de puertos porque hay varias réplicas y cada una necesita el suyo.
@@ -90,11 +97,20 @@ services:
     depends_on:
       spark-master:
         condition: service_healthy
+    # El driver planifica y recibe resultados ya agregados; el volumen distribuido
+    # lo procesan los executors de los workers.
+    cpus: 2
     ports:
       - "${PUERTO_JUPYTER:-8889}:8888"
       # UI del driver. Spark usa 4040 y si está ocupado sube a 4041, 4042...
       # por eso se publica un rango pequeño.
-      - "${PUERTO_DRIVER_UI:-4040}-4044:4040-4044"
+      # El primero se elige en .env; los otros 4 quedan fijos, así el rango no se
+      # deforma si PUERTO_DRIVER_UI cambia (con "${X}-4044" y X=4050 sería inválido).
+      - "${PUERTO_DRIVER_UI:-4040}:4040"
+      - "4041:4041"
+      - "4042:4042"
+      - "4043:4043"
+      - "4044:4044"
     environment:
       # El notebook lee estas variables, así no hay direcciones escritas a mano.
       SPARK_MASTER_URL: spark://spark-master:7077

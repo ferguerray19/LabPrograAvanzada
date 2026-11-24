@@ -1,0 +1,24 @@
+{
+    "SandboxID": "600f5d69bb04010297bb58602278626c7cda5445f98f42f12800fbc7c2786d77",
+    "SandboxKey": "/var/run/docker/netns/600f5d69bb04",
+    "Ports": {},
+    "Networks": {
+        "bridge": {
+            "IPAMConfig": null,
+            "Links": null,
+            "Aliases": null,
+            "DriverOpts": null,
+            "GwPriority": 0,
+            "NetworkID": "0bd6fafa99f5f20570d7d47a5b4ce984301c899e6f708a6af27faf546b44e703",
+            "EndpointID": "15976f4dc7f45bd11efe6a489d9ae7dbf004b3ea27f31d3da629d54abcf163a5",
+            "Gateway": "172.17.0.1",
+            "IPAddress": "172.17.0.2",
+            "MacAddress": "1e:c9:8e:33:4a:05",
+            "IPPrefixLen": 16,
+            "IPv6Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "DNSNames": null
+        }
+    }
+}

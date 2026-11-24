@@ -1,0 +1,40 @@
+{
+  "ejecutado_utc": "2026-09-06T19:27:51+00:00",
+  "duracion_s": 0.286,
+  "total_eventos": 50120,
+  "total_bytes": 9299594,
+  "bytes_por_evento": 185.55,
+  "eventos_por_segundo": 175029.7,
+  "mb_por_segundo": 32.48,
+  "archivos": [
+    "part-000.jsonl"
+  ],
+  "arquitectura": "shard",
+  "workers": 1,
+  "seed": 42,
+  "esquema": "full",
+  "batch_size": 10000,
+  "sim_inicio": "2026-08-24T00:00:00Z",
+  "sim_intervalo_s": 15.0,
+  "sim_ticks": 280,
+  "sim_dias": 0.0486,
+  "puntos_de_medicion": 179,
+  "start_method": "fork",
+  "entorno": {
+    "python": "3.12.3",
+    "implementacion": "CPython",
+    "so": "Linux 6.18.44-fc-v24",
+    "maquina": "x86_64",
+    "nucleos_logicos": 1
+  },
+  "detalles": [
+    {
+      "worker_id": 0,
+      "archivo": "part-000.jsonl",
+      "eventos": 50120,
+      "bytes": 9299594,
+      "puntos": 179,
+      "duracion_s": 0.281
+    }
+  ]
+}

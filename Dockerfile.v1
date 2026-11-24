@@ -1,0 +1,21 @@
+# ============================================================================
+#  v1 - Paso intermedio de la tabla comparativa: base slim, una sola etapa y
+#  requirements.txt ANTES que el codigo (cache util). Todavia corre como root
+#  y sin init, pero el CMD ya esta en forma exec.
+# ============================================================================
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/ ./src/
+
+EXPOSE 9009
+CMD ["python", "-u", "src/receptor_tcp.py"]

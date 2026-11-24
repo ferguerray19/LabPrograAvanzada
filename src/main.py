@@ -15,6 +15,12 @@ Uso tipico:
     python -m src.main --workers 8 --total-events 10000000 \\
         --output-dir data/raw --arch shard --batch-size 10000 \\
         --seed 42 --sim-days 9
+
+Contra el receptor TCP (lo que corre el servicio `simulador-puerto` en
+Docker Compose; ahi los parametros llegan por variables de entorno):
+
+    python -m src.main --arch tcp --tcp-host 127.0.0.1 --tcp-port 9009 \\
+        --workers 4 --batch-size 50000 --bench-csv ""
 """
 
 from __future__ import annotations
@@ -38,7 +44,7 @@ try:
 except ImportError:  # Windows
     resource = None
 
-from . import arquitectura_a, arquitectura_b, esquema, simulador
+from . import arquitectura_a, arquitectura_b, arquitectura_tcp, esquema, simulador
 from .esquema import PlanCorrida
 
 MINIMO_DURO = 10_000_000
@@ -108,29 +114,60 @@ def pico_memoria_mb() -> tuple[float | None, float | None]:
 # ---------------------------------------------------------------------------
 
 
+def _de_entorno(nombre: str, defecto, tipo=str):
+    """Valor por defecto de una opcion, tomado de una variable de entorno.
+
+    Es como Docker Compose parametriza el servicio `simulador-puerto` desde
+    el `.env` (TOTAL_EVENTOS, N_PROCESOS, BATCH_SIZE, TCP_HOST, TCP_PORT). La
+    linea de comandos sigue mandando sobre el entorno, y `--help` muestra el
+    valor ya resuelto, asi que no hay configuracion escondida. Fuera de
+    Docker estas variables no existen y los defectos son los de siempre.
+    """
+    crudo = os.environ.get(nombre, "")
+    if not crudo:
+        return defecto
+    try:
+        return tipo(crudo)
+    except ValueError:
+        raise SystemExit(f"variable de entorno {nombre}={crudo!r}: se esperaba "
+                         f"{tipo.__name__}") from None
+
+
 def construir_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="python -m src.main",
         description="Generador de logs crudos masivos - TPC Sitio 3, Fase 1.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p.add_argument("--workers", type=int, default=os.cpu_count() or 4,
-                   help="numero de procesos trabajadores")
-    p.add_argument("--total-events", type=int, default=MINIMO_DURO,
+    p.add_argument("--workers", type=int,
+                   default=_de_entorno("N_PROCESOS", os.cpu_count() or 4, int),
+                   help="numero de procesos trabajadores (env N_PROCESOS)")
+    p.add_argument("--total-events", type=int,
+                   default=_de_entorno("TOTAL_EVENTOS", MINIMO_DURO, int),
                    help="piso de eventos a generar; el total real lo redondea "
-                        "hacia arriba al tick completo mas cercano")
+                        "hacia arriba al tick completo mas cercano "
+                        "(env TOTAL_EVENTOS)")
     p.add_argument("--output-dir", type=str, default="data/raw",
                    help="carpeta de salida de los .jsonl")
-    p.add_argument("--arch", choices=("shard", "queue"), default="shard",
+    p.add_argument("--arch", choices=("shard", "queue", "tcp"), default="shard",
                    help="shard = archivos segmentados (Opcion B); "
-                        "queue = escritor unico (Opcion A, no implementada)")
-    p.add_argument("--batch-size", type=int, default=10_000,
+                        "queue = escritor unico (Opcion A); "
+                        "tcp = cada worker envia al receptor TCP (Opcion C)")
+    p.add_argument("--batch-size", type=int,
+                   default=_de_entorno("BATCH_SIZE", 10_000, int),
                    help="eventos por lote: lineas acumuladas antes de cada "
-                        "writelines (shard) o de cada put (queue)")
+                        "writelines (shard), put (queue) o sendall (tcp) "
+                        "(env BATCH_SIZE)")
     p.add_argument("--queue-maxsize", type=int, default=64,
                    help="solo con --arch queue: mensajes maximos en la cola. "
                         "Acota la RAM en ~maxsize x batch-size eventos y es "
                         "lo que produce la contrapresion. Nunca ilimitada")
+    p.add_argument("--tcp-host", default=_de_entorno("TCP_HOST", "127.0.0.1"),
+                   help="solo con --arch tcp: host del receptor (env TCP_HOST). "
+                        "En Compose es el nombre del servicio, ingestor-tcp")
+    p.add_argument("--tcp-port", type=int,
+                   default=_de_entorno("TCP_PORT", 9009, int),
+                   help="solo con --arch tcp: puerto del receptor (env TCP_PORT)")
     p.add_argument("--seed", type=int, default=42,
                    help="semilla maestra; misma semilla = mismo dataset")
     p.add_argument("--sim-days", type=float, default=None,
@@ -149,7 +186,8 @@ def construir_parser() -> argparse.ArgumentParser:
                    default=None, help="metodo de arranque de multiprocessing; "
                         "por defecto el del sistema")
     p.add_argument("--bench-csv", type=str, default="bench/mediciones.csv",
-                   help="CSV al que se anexa una fila por corrida")
+                   help="CSV al que se anexa una fila por corrida; cadena "
+                        "vacia para no registrar (el contenedor no lo tiene)")
     p.add_argument("--etiqueta", type=str, default="",
                    help="nombre del experimento; agrupa corridas en el CSV")
     p.add_argument("--repeticion", type=int, default=1,
@@ -225,8 +263,14 @@ def validar(args: argparse.Namespace) -> None:
     except ValueError as exc:
         fatales.append(str(exc))
 
+    if args.arch == "tcp" and not 1 <= args.tcp_port <= 65535:
+        fatales.append("--tcp-port debe estar entre 1 y 65535")
+
     salida = Path(args.output_dir)
-    existentes = sorted(salida.glob("*.jsonl")) if salida.is_dir() else []
+    # Con --arch tcp el simulador no escribe el dataset: lo escribe el
+    # receptor, en su propio disco, y es el quien avisa de restos previos.
+    existentes = (sorted(salida.glob("*.jsonl"))
+                  if salida.is_dir() and args.arch != "tcp" else [])
     if existentes and not args.force:
         fatales.append(
             f"{salida} ya contiene {len(existentes)} archivo(s) .jsonl. "
@@ -298,7 +342,7 @@ def configurar_logging(nivel: str):
 # ---------------------------------------------------------------------------
 
 
-def escribir_manifiesto(plan: PlanCorrida, resumen, args, ruta: Path,
+def escribir_manifiesto(plan: PlanCorrida, resumen, args, ruta: Path | None,
                         mem_padre=None, mem_hijos=None) -> dict:
     """El manifiesto es lo que permite verificar que no se perdio nada y lo
     que alimenta el informe. Registra dos tiempos distintos que es facil
@@ -360,7 +404,9 @@ def escribir_manifiesto(plan: PlanCorrida, resumen, args, ruta: Path,
             for r in resumen.detalles
         ],
     }
-    ruta.write_text(json.dumps(manifiesto, indent=2, ensure_ascii=False), encoding="utf-8")
+    if ruta is not None:
+        ruta.write_text(json.dumps(manifiesto, indent=2, ensure_ascii=False),
+                        encoding="utf-8")
     return manifiesto
 
 
@@ -524,9 +570,14 @@ def main(argv: list[str] | None = None) -> int:
         esquema=args.esquema,
         start_method=args.start_method or mp.get_start_method(),
         queue_maxsize=args.queue_maxsize,
+        tcp_host=args.tcp_host,
+        tcp_port=args.tcp_port,
     )
 
-    verificar_espacio(args, plan.eventos_esperados)
+    # Con --arch tcp el espacio que importa es el del receptor, no el de
+    # este contenedor, que no escribe nada.
+    if args.arch != "tcp":
+        verificar_espacio(args, plan.eventos_esperados)
     log.info(
         "plan: %d workers, %d puntos x %d ticks = %d eventos (%.2f dias simulados)",
         plan.workers, plan.n_puntos, plan.n_ticks, plan.eventos_esperados,
@@ -545,7 +596,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     listener.start()
 
-    modulo = arquitectura_b if args.arch == "shard" else arquitectura_a
+    modulo = {"shard": arquitectura_b, "queue": arquitectura_a,
+              "tcp": arquitectura_tcp}[args.arch]
     t_pared = time.perf_counter()
     try:
         resumen = modulo.ejecutar(
@@ -567,11 +619,14 @@ def main(argv: list[str] | None = None) -> int:
     # fueron recolectados y RUSAGE_CHILDREN tiene datos.
     mem_padre, mem_hijos = pico_memoria_mb()
 
-    salida = Path(args.output_dir)
-    manifiesto = escribir_manifiesto(plan, resumen, args,
-                                     salida / "manifiesto.json",
+    # Con --arch tcp el manifiesto de los datos lo escribe el receptor junto
+    # a los .jsonl (manifiesto_receptor.json); aqui solo se arma para el CSV.
+    ruta_manifiesto = (None if args.arch == "tcp"
+                       else Path(args.output_dir) / "manifiesto.json")
+    manifiesto = escribir_manifiesto(plan, resumen, args, ruta_manifiesto,
                                      mem_padre, mem_hijos)
-    anexar_csv(Path(args.bench_csv), manifiesto, args)
+    if args.bench_csv:
+        anexar_csv(Path(args.bench_csv), manifiesto, args)
 
     log.info(
         "OK: %d eventos, %.2f GB, %.2f s (%.0f ev/s, %.1f MB/s). Total de pared %.2f s.",

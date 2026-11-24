@@ -1,0 +1,45 @@
+# ----------------------------------------------------------------------------
+# Lo que NO se envia al daemon de Docker como contexto de build.
+#
+# Sin este archivo, un `COPY . .` (Dockerfile.v0) envia al daemon el
+# directorio completo, incluidos los ~1,9 GB de data/raw y el historial de
+# git: la medicion (sin y con este archivo) esta en lab/evidencias/parte2.txt.
+# Y esos 1,9 GB terminan DENTRO de la imagen.
+#
+# El Dockerfile v2 copia solo requirements.txt y src/, y BuildKit ya
+# transfiere nada mas que lo que los COPY nombran. El .dockerignore sigue
+# siendo la defensa para el dia en que alguien agregue un `COPY . .` o
+# construya con el builder clasico, que siempre envia todo.
+# ----------------------------------------------------------------------------
+
+# Control de versiones
+.git
+.gitignore
+
+# Artefactos de Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.prof
+
+# Datos: el dataset crudo, la muestra y cualquier .jsonl suelto
+data/
+*.jsonl
+*.log
+
+# Configuracion local y secretos: nunca dentro de una imagen
+.env
+.env.*
+
+# Lo que no se ejecuta dentro del contenedor
+tests/
+bench/
+docs/
+lab/
+*.md
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+lab_fs2/

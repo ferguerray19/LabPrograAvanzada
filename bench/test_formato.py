@@ -220,6 +220,132 @@ def test_equivalencia_arquitecturas() -> None:
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+# ---------------------------------------------------------------------------
+# Receptor TCP (laboratorio Docker)
+# ---------------------------------------------------------------------------
+
+
+def _levantar_receptor(carpeta: Path):
+    """Lanza `src/receptor_tcp.py` como PROCESO aparte, igual que en Docker.
+
+    No se usa un hilo: con `fork` -el metodo que usa el Pool en Linux- un
+    proceso multihilo puede heredar candados tomados, y ademas el manejo de
+    SIGTERM solo se puede probar de verdad sobre un proceso real.
+    """
+    import socket
+    import subprocess
+    import time
+
+    with socket.socket() as s:  # puerto libre elegido por el kernel
+        s.bind(("127.0.0.1", 0))
+        puerto = s.getsockname()[1]
+    raiz = Path(__file__).resolve().parent.parent
+    proc = subprocess.Popen(
+        [sys.executable, str(raiz / "src" / "receptor_tcp.py"),
+         "--host", "127.0.0.1", "--port", str(puerto),
+         "--data-dir", str(carpeta), "--log-level", "WARNING"],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    )
+    for _ in range(100):
+        try:
+            socket.create_connection(("127.0.0.1", puerto), 0.2).close()
+            return proc, puerto
+        except OSError:
+            time.sleep(0.05)
+    proc.kill()
+    raise AssertionError("el receptor no empezo a escuchar")
+
+
+def test_equivalencia_tcp() -> None:
+    """La Opcion C (TCP) debe producir EXACTAMENTE los archivos de la Opcion B.
+
+    Mas fuerte que el test de la Opcion A: como cada worker tiene su propia
+    conexion y el receptor le asigna su propio archivo, no hay intercalado
+    posible y cada `part-NNN.jsonl` tiene que ser identico BYTE A BYTE al de
+    la Opcion B. Verifica ademas el apagado: SIGTERM -> codigo 143 y
+    manifiesto con todos los archivos completos.
+    """
+    import json
+    import shutil
+    import signal
+    import tempfile
+    from src import arquitectura_b, arquitectura_tcp
+
+    n_puntos = simulador.contar_puntos(simulador.construir_inventario(42))
+    n_ticks = 400
+    base = dict(
+        workers=3, total_events=n_puntos * n_ticks, arch="shard",
+        batch_size=500, seed=42, t0_ms=parsear_t0("2026-08-24T00:00:00Z"),
+        dt_ms=15_000, n_ticks=n_ticks, n_puntos=n_puntos, esquema="full",
+        start_method="fork",
+    )
+    tmp = Path(tempfile.mkdtemp(prefix="tpc_tcp_"))
+    try:
+        (tmp / "shard").mkdir()
+        arquitectura_b.ejecutar(esquema.PlanCorrida(
+            **base, output_dir=str(tmp / "shard")))
+
+        proc, puerto = _levantar_receptor(tmp / "tcp")
+        try:
+            plan = esquema.PlanCorrida(**{**base, "arch": "tcp"},
+                                       output_dir=str(tmp / "no-se-usa"),
+                                       tcp_host="127.0.0.1", tcp_port=puerto)
+            resumen = arquitectura_tcp.ejecutar(plan)
+            assert resumen.eventos == plan.eventos_esperados, resumen.eventos
+        finally:
+            proc.send_signal(signal.SIGTERM)
+            codigo = proc.wait(timeout=15)
+        assert codigo == 143, f"el receptor salio con {codigo}, se esperaba 143"
+
+        a = sorted(p.name for p in (tmp / "shard").glob("*.jsonl"))
+        b = sorted(p.name for p in (tmp / "tcp").glob("*.jsonl"))
+        assert a == b, (a, b)
+        for nombre in a:
+            assert (tmp / "shard" / nombre).read_bytes() == \
+                (tmp / "tcp" / nombre).read_bytes(), f"{nombre} difiere"
+        man = json.loads((tmp / "tcp" / "manifiesto_receptor.json").read_text())
+        assert man["total_recibido"] == plan.eventos_esperados, man
+        assert man["archivos_completos"] == base["workers"], man
+        assert not (tmp / "no-se-usa").exists(), "el simulador tcp escribio en disco"
+        print(f"OK  test_equivalencia_tcp        ({plan.eventos_esperados:,} eventos, "
+              f"{len(a)} archivos identicos byte a byte a la Opcion B; SIGTERM -> 143)")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def test_receptor_protocolo() -> None:
+    """Los dos clientes que no son el simulador: el healthcheck de Compose
+    (abre y cierra sin datos: no debe crear archivos) y una prueba manual con
+    `nc` (lineas sin cabecera: se aceptan como anon-NNNN.jsonl con acuse)."""
+    import json
+    import shutil
+    import signal
+    import socket
+    import tempfile
+
+    tmp = Path(tempfile.mkdtemp(prefix="tpc_proto_"))
+    try:
+        proc, puerto = _levantar_receptor(tmp)  # ya hizo una conexion vacia
+        try:
+            socket.create_connection(("127.0.0.1", puerto), 2).close()
+            with socket.create_connection(("127.0.0.1", puerto), 5) as s:
+                s.sendall(b'{"a":1}\n{"a":2}\n{"a":3}')  # la ultima sin '\n'
+                s.shutdown(socket.SHUT_WR)
+                acuse = json.loads(s.makefile("rb").readline())
+        finally:
+            proc.send_signal(signal.SIGTERM)
+            proc.wait(timeout=15)
+        assert acuse["recibidos"] == 3 and acuse["completo"], acuse
+        archivos = sorted(p.name for p in tmp.glob("*.jsonl"))
+        assert len(archivos) == 1 and archivos[0].startswith("anon-"), archivos
+        lineas = (tmp / archivos[0]).read_text().splitlines()
+        assert [json.loads(x)["a"] for x in lineas] == [1, 2, 3], lineas
+        print("OK  test_receptor_protocolo      (healthcheck sin archivo, "
+              "cliente sin cabecera con acuse)")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 if __name__ == "__main__":
     for nombre, fn in sorted(globals().items()):
         if nombre.startswith("test_") and callable(fn):

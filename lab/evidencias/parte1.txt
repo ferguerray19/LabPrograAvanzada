@@ -1,0 +1,210 @@
+# 2026-09-28 19:15:00  MINGW64_NT-10.0-26200 3.6.9-b4195d69.x86_64 x86_64  Docker version 29.8.1, build 4a63305
+
+==================================================================
+  Entorno
+==================================================================
+HOST="docker run --rm --privileged --pid=host python:3.12-slim"   # shell en la VM Linux de Docker Desktop
+
+$ docker version --format 'Cliente {{.Client.Version}} / Engine {{.Server.Version}} / {{.Server.Platform.Name}}'; docker compose version
+Cliente 29.8.1 / Engine 29.8.1 / Docker Desktop 4.93.0 (240920)
+Docker Compose version v5.5.1
+
+$ docker info --format '{{.OperatingSystem}} | kernel {{.KernelVersion}} | {{.NCPU}} CPU | {{.MemTotal}} B RAM | cgroup v{{.CgroupVersion}}'
+Docker Desktop | kernel 6.6.87.2-microsoft-standard-WSL2 | 20 CPU | 8207372288 B RAM | cgroup v2
+
+==================================================================
+  1.1 Contenedor Python
+==================================================================
+
+$ docker run --rm --name lab-cli python:3.12-slim bash -c \
+  'python --version; pip list 2>/dev/null; grep PRETTY_NAME /etc/os-release; echo "hostname: $(hostname)"'
+Python 3.12.14
+Package Version
+------- -------
+pip     25.0.1
+PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
+hostname: 58c45b3fc4ab
+
+==================================================================
+  1.2 Namespaces: el mismo proceso, dos PID distintos
+==================================================================
+
+$ docker run -d --name lab-ns python:3.12-slim python -c "import time; time.sleep(3600)"
+85d63caae92592db1d1b916ee916d02008d1d6443f5d36b01435044529e1813e
+
+==================================================================
+  1.2 a) Vista desde DENTRO del contenedor
+==================================================================
+
+$ docker exec lab-ns sh -c 'echo "PID 1 = $(cat /proc/1/cmdline | tr "\0" " ")"; echo "PIDs visibles:"; ls /proc | grep -E "^[0-9]+$" | tr "\n" " "; echo'
+PID 1 = python -c import time; time.sleep(3600) 
+PIDs visibles:
+1 16 17 18 7 
+
+$ docker exec lab-ns readlink /proc/1/ns/pid
+pid:[4026532385]
+
+==================================================================
+  1.2 b) Vista desde el HOST (VM Linux de Docker Desktop)
+==================================================================
+
+$ docker top lab-ns
+UID                 PID                 PPID                C                   STIME               TTY                 TIME                CMD
+root                507                 484                 0                   22:15               ?                   00:00:00            python -c import time; time.sleep(3600)
+
+$ docker inspect -f '{{.State.Pid}}' lab-ns
+507
+
+$ $HOST sh -c "echo \"PID $PID en el host: \$(tr '\0' ' ' < /proc/$PID/cmdline)\"; grep -E '^(PPid|NSpid)' /proc/$PID/status"
+PID 507 en el host: python -c import time; time.sleep(3600) 
+PPid:	484
+NSpid:	507	1
+
+Identificadores del namespace PID (inodos distintos = aislamiento efectivo):
+
+$ $HOST sh -c "echo contenedor: \$(readlink /proc/$PID/ns/pid); echo host:       \$(readlink /proc/1/ns/pid)"
+contenedor: pid:[4026532385]
+host: pid:[4026532291]
+
+$ $HOST lsns -p $PID
+        NS TYPE   NPROCS   PID USER COMMAND
+4026531837 user       15     1 root /initd
+4026532382 mnt         1   507 root python -c import time; time.sleep(3600)
+4026532383 uts         1   507 root python -c import time; time.sleep(3600)
+4026532384 ipc         1   507 root python -c import time; time.sleep(3600)
+4026532385 pid         1   507 root python -c import time; time.sleep(3600)
+4026532386 cgroup      1   507 root python -c import time; time.sleep(3600)
+4026532387 net         1   507 root python -c import time; time.sleep(3600)
+4026532455 time        1   507 root python -c import time; time.sleep(3600)
+
+CONCLUSION: un unico proceso del kernel con dos identidades: PID 1 dentro
+del contenedor y PID 507 en el host (NSpid muestra ambos).
+
+==================================================================
+  1.3 IP virtual y red del contenedor
+==================================================================
+
+$ docker inspect -f '{{json .NetworkSettings}}' lab-ns | python -m json.tool
+{
+    "SandboxID": "600f5d69bb04010297bb58602278626c7cda5445f98f42f12800fbc7c2786d77",
+    "SandboxKey": "/var/run/docker/netns/600f5d69bb04",
+    "Ports": {},
+    "Networks": {
+        "bridge": {
+            "IPAMConfig": null,
+            "Links": null,
+            "Aliases": null,
+            "DriverOpts": null,
+            "GwPriority": 0,
+            "NetworkID": "0bd6fafa99f5f20570d7d47a5b4ce984301c899e6f708a6af27faf546b44e703",
+            "EndpointID": "15976f4dc7f45bd11efe6a489d9ae7dbf004b3ea27f31d3da629d54abcf163a5",
+            "Gateway": "172.17.0.1",
+            "IPAddress": "172.17.0.2",
+            "MacAddress": "1e:c9:8e:33:4a:05",
+            "IPPrefixLen": 16,
+            "IPv6Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "DNSNames": null
+        }
+    }
+}
+(JSON guardado en lab/evidencias/parte1_networksettings.json)
+
+$ docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' lab-ns
+172.17.0.2
+
+$ docker network inspect bridge --format '{{json .IPAM.Config}}'
+[{"Subnet":"172.17.0.0/16","Gateway":"172.17.0.1"}]
+
+Conectividad hacia el contenedor desde el namespace de red de docker0:
+RED="docker run --rm --net=host alpine"   # shell en el namespace de red de la VM, donde vive docker0 (alpine trae ip y ping)
+
+$ $RED ip addr show docker0
+4: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP 
+    link/ether ca:ad:5c:ea:63:e6 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::c8ad:5cff:feea:63e6/64 scope link 
+       valid_lft forever preferred_lft forever
+
+$ $RED ping -c 2 $IP
+PING 172.17.0.2 (172.17.0.2): 56 data bytes
+64 bytes from 172.17.0.2: seq=0 ttl=64 time=0.056 ms
+64 bytes from 172.17.0.2: seq=1 ttl=64 time=0.112 ms
+
+--- 172.17.0.2 ping statistics ---
+2 packets transmitted, 2 packets received, 0% packet loss
+round-trip min/avg/max = 0.056/0.084/0.112 ms
+
+==================================================================
+  1.4 Cgroups y OOM Killer: provocar el codigo 137 (techo 100 MB, sin swap)
+==================================================================
+
+$ docker run --name lab-oom -m 100m --memory-swap 100m \
+  -v "$BOMB:/app/memory_bomb.py:ro" \
+  python:3.12-slim python /app/memory_bomb.py
+Reservados: 10 MB
+Reservados: 20 MB
+Reservados: 30 MB
+Reservados: 40 MB
+Reservados: 50 MB
+Reservados: 60 MB
+Reservados: 70 MB
+Reservados: 80 MB
+Reservados: 90 MB
+
+$ echo $?
+137
+
+$ docker inspect lab-oom --format \
+  'OOMKilled={{.State.OOMKilled}} ExitCode={{.State.ExitCode}} Error={{.State.Error}}'
+OOMKilled=true ExitCode=137 Error=
+
+Traza del kernel (dmesg de la VM), solo las lineas de ESTE contenedor:
+
+$ CID=$(docker inspect -f '{{.Id}}' lab-oom); echo "CID=$CID  OOM_PID=$OOM_PID"
+CID=8cf6db07c79e1de2f6277a272b725affbf6106a901cd7d9b3001254c5ac49c80  OOM_PID=1417
+
+$ $HOST dmesg -T | grep -E "oom|Memory cgroup" | grep -E "$CID|process $OOM_PID "
+[Mon Sep 28 22:15:22 2026] Memory cgroup stats for /docker/8cf6db07c79e1de2f6277a272b725affbf6106a901cd7d9b3001254c5ac49c80:
+[Mon Sep 28 22:15:22 2026] oom-kill:constraint=CONSTRAINT_MEMCG,nodemask=(null),cpuset=8cf6db07c79e1de2f6277a272b725affbf6106a901cd7d9b3001254c5ac49c80,mems_allowed=0,oom_memcg=/docker/8cf6db07c79e1de2f6277a272b725affbf6106a901cd7d9b3001254c5ac49c80,task_memcg=/docker/8cf6db07c79e1de2f6277a272b725affbf6106a901cd7d9b3001254c5ac49c80,task=python,pid=1417,uid=0
+[Mon Sep 28 22:15:22 2026] Memory cgroup out of memory: Killed process 1417 (python) total-vm:116612kB, anon-rss:101760kB, file-rss:5600kB, shmem-rss:0kB, UID:0 pgtables:264kB oom_score_adj:0
+
+==================================================================
+  1.4 El limite viene del cgroup, no de la aplicacion (cgroup v2)
+==================================================================
+
+$ docker run --rm -m 100m python:3.12-slim cat /sys/fs/cgroup/memory.max
+104857600
+# 104857600 -> exactamente 100 MiB
+
+$ docker stats --no-stream --format 'table {{.Name}}\t{{.MemUsage}}\t{{.MemPerc}}' lab-limite
+NAME         MEM USAGE / LIMIT   MEM %
+lab-limite   588KiB / 100MiB     0.57%
+
+==================================================================
+  1.4 Repeticion con 512 MB: el limite es configuracion, no naturaleza
+==================================================================
+
+$ docker run --name lab-oom512 -m 512m --memory-swap 512m \
+  -v "$BOMB:/app/memory_bomb.py:ro" \
+  python:3.12-slim python /app/memory_bomb.py | tail -n 3
+Reservados: 480 MB
+Reservados: 490 MB
+Reservados: 500 MB
+
+$ docker inspect lab-oom512 --format 'OOMKilled={{.State.OOMKilled}} ExitCode={{.State.ExitCode}}'
+OOMKilled=true ExitCode=137
+
+Con 100 MB sobrevivio 2.5 s; con 512 MB, 11.1 s.
+
+==================================================================
+  Limpieza de la Parte 1
+==================================================================
+
+$ docker rm -f lab-ns lab-oom lab-oom512 lab-limite lab-cli 2>/dev/null
+lab-ns
+lab-oom
+lab-oom512
+lab-limite

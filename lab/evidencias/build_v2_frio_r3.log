@@ -1,0 +1,107 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 4.59kB done
+#1 DONE 0.0s
+
+#2 resolve image config for docker-image://docker.io/docker/dockerfile:1
+#2 DONE 0.3s
+
+#3 docker-image://docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
+#3 resolve docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32 0.0s done
+#3 CACHED
+
+#4 [internal] load metadata for docker.io/library/python:3.12-slim
+#4 DONE 0.3s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 1.24kB done
+#5 DONE 0.0s
+
+#6 [builder 1/5] FROM docker.io/library/python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f
+#6 resolve docker.io/library/python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f 0.0s done
+#6 CACHED
+
+#7 [internal] load build context
+#7 transferring context: 1.02kB done
+#7 DONE 0.0s
+
+#8 [runtime 2/7] RUN apt-get update  && apt-get install -y --no-install-recommends tini  && rm -rf /var/lib/apt/lists/*
+#8 0.340 Hit:1 http://deb.debian.org/debian trixie InRelease
+#8 ...
+
+#9 [builder 2/5] RUN python -m venv --without-pip /opt/venv
+#9 DONE 0.4s
+
+#10 [builder 3/5] WORKDIR /app
+#10 DONE 0.0s
+
+#11 [builder 4/5] COPY requirements.txt .
+#11 DONE 0.1s
+
+#8 [runtime 2/7] RUN apt-get update  && apt-get install -y --no-install-recommends tini  && rm -rf /var/lib/apt/lists/*
+#8 0.400 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.3 kB]
+#8 0.491 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#8 0.648 Get:4 http://deb.debian.org/debian trixie/main amd64 Packages [9678 kB]
+#8 ...
+
+#12 [builder 5/5] RUN pip --python /opt/venv/bin/python install --no-cache-dir -r requirements.txt
+#12 DONE 0.9s
+
+#8 [runtime 2/7] RUN apt-get update  && apt-get install -y --no-install-recommends tini  && rm -rf /var/lib/apt/lists/*
+#8 54.04 Get:5 http://deb.debian.org/debian trixie-updates/main amd64 Packages [4412 B]
+#8 54.10 Get:6 http://deb.debian.org/debian-security trixie-security/main amd64 Packages [261 kB]
+#8 56.13 Fetched 10.0 MB in 56s (180 kB/s)
+#8 56.13 Reading package lists...
+#8 56.45 Reading package lists...
+#8 56.76 Building dependency tree...
+#8 56.83 Reading state information...
+#8 56.94 The following NEW packages will be installed:
+#8 56.94   tini
+#8 57.05 0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+#8 57.05 Need to get 280 kB of archives.
+#8 57.05 After this operation, 783 kB of additional disk space will be used.
+#8 57.05 Get:1 http://deb.debian.org/debian trixie/main amd64 tini amd64 0.19.0-3+b8 [280 kB]
+#8 57.79 debconf: unable to initialize frontend: Dialog
+#8 57.79 debconf: (TERM is not set, so the dialog frontend is not usable.)
+#8 57.79 debconf: falling back to frontend: Readline
+#8 57.79 debconf: unable to initialize frontend: Readline
+#8 57.79 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/x86_64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, <STDIN> line 1.)
+#8 57.79 debconf: falling back to frontend: Teletype
+#8 57.79 debconf: unable to initialize frontend: Teletype
+#8 57.79 debconf: (This frontend requires a controlling tty.)
+#8 57.79 debconf: falling back to frontend: Noninteractive
+#8 58.12 Fetched 280 kB in 1s (360 kB/s)
+#8 58.13 Selecting previously unselected package tini.
+#8 58.13 (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 5660 files and directories currently installed.)
+#8 58.13 Preparing to unpack .../tini_0.19.0-3+b8_amd64.deb ...
+#8 58.13 Unpacking tini (0.19.0-3+b8) ...
+#8 58.16 Setting up tini (0.19.0-3+b8) ...
+#8 DONE 58.2s
+
+#13 [runtime 3/7] RUN groupadd --gid 10001 appgroup  && useradd --uid 10001 --gid appgroup --no-create-home             --home-dir /nonexistent --shell /usr/sbin/nologin appuser
+#13 DONE 0.3s
+
+#14 [runtime 4/7] WORKDIR /app
+#14 DONE 0.0s
+
+#15 [runtime 5/7] COPY --from=builder /opt/venv /opt/venv
+#15 DONE 0.1s
+
+#16 [runtime 6/7] COPY src/ ./src/
+#16 DONE 0.0s
+
+#17 [runtime 7/7] RUN mkdir -p /app/data && chown appuser:appgroup /app/data
+#17 DONE 0.2s
+
+#18 exporting to image
+#18 exporting layers 0.1s done
+#18 exporting manifest sha256:ff0d34e0c1f9dd49f3c4a3d855013f9d1bb6e58901aaa80a1fffed1f492f932f done
+#18 exporting config sha256:12ca5ded3e69f50f803978197dc88ca25e42e60253b34dfb739aa8886faa1bb9 done
+#18 exporting attestation manifest sha256:2497a42f200f5af2e1421d9e5ec026e75934d2e345c37db7216b8d48354db1d6 done
+#18 exporting manifest list sha256:fc86b347caa131c6a1e50ac0455daa3611153cffd62b1659d4c2bff8e41d2d68 done
+#18 naming to docker.io/library/proyecto:v2 done
+#18 unpacking to docker.io/library/proyecto:v2 0.1s done
+#18 DONE 0.2s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/nacb33ca7cun9lphpv39w6pbs

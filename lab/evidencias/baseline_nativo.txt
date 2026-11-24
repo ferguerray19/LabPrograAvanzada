@@ -1,0 +1,73 @@
+# 2026-09-28 18:55:20  Linux 6.6.87.2-microsoft-standard-WSL2 x86_64  
+The command 'docker' could not be found in this WSL 2 distro.
+We recommend to activate the WSL integration in Docker Desktop settings.
+
+For details about using Docker Desktop with WSL 2, visit:
+
+https://docs.docker.com/go/wsl2/
+
+sin docker
+
+==================================================================
+  Entorno de la linea base nativa
+==================================================================
+
+$ uname -srm; $PY --version; nproc; free -m | head -n 2
+Linux 6.6.87.2-microsoft-standard-WSL2 x86_64
+Python 3.12.3
+20
+               total        used        free      shared  buff/cache   available
+Mem:            7827         974        3572          26        3498        6853
+
+$ df -hT "$DIR_DATOS" | tail -n 1
+/dev/sdf       ext4 1007G  2.1G  954G   1% /
+
+==================================================================
+  Corrida nativa 1 de 3: receptor + simulador --arch tcp, 4 workers, 10 M eventos
+==================================================================
+
+$ $PY -m src.main --arch tcp --workers 4 --total-events 10000000 --batch-size 50000 \
+  --tcp-host 127.0.0.1 --tcp-port $PUERTO --bench-csv "" 2>&1 | tail -n 1
+2026-09-28 18:55:28,888 INFO    [MainProcess] tpc: OK: 10000014 eventos, 1.88 GB, 8.30 s (1204794 ev/s, 226.2 MB/s). Total de pared 8.30 s.
+receptor salio con codigo 143
+2026-09-28 18:55:28,886 INFO    receptor: part-000.jsonl cerrado: 2513970/2513970 eventos, 472.1 MB en 8.3 s (completo)
+2026-09-28 18:55:28,898 INFO    receptor: apagado limpio: 10,000,014 eventos persistidos en esta sesion
+
+$ wc -l "$DIR_DATOS"/*.jsonl | tail -n 1
+  10000014 total
+
+==================================================================
+  Corrida nativa 2 de 3: receptor + simulador --arch tcp, 4 workers, 10 M eventos
+==================================================================
+
+$ $PY -m src.main --arch tcp --workers 4 --total-events 10000000 --batch-size 50000 \
+  --tcp-host 127.0.0.1 --tcp-port $PUERTO --bench-csv "" 2>&1 | tail -n 1
+2026-09-28 18:55:37,828 INFO    [MainProcess] tpc: OK: 10000014 eventos, 1.88 GB, 8.30 s (1204699 ev/s, 226.2 MB/s). Total de pared 8.30 s.
+receptor salio con codigo 143
+2026-09-28 18:55:37,826 INFO    receptor: part-000.jsonl cerrado: 2513970/2513970 eventos, 472.1 MB en 8.3 s (completo)
+2026-09-28 18:55:37,837 INFO    receptor: apagado limpio: 10,000,014 eventos persistidos en esta sesion
+
+$ wc -l "$DIR_DATOS"/*.jsonl | tail -n 1
+  10000014 total
+
+==================================================================
+  Corrida nativa 3 de 3: receptor + simulador --arch tcp, 4 workers, 10 M eventos
+==================================================================
+
+$ $PY -m src.main --arch tcp --workers 4 --total-events 10000000 --batch-size 50000 \
+  --tcp-host 127.0.0.1 --tcp-port $PUERTO --bench-csv "" 2>&1 | tail -n 1
+2026-09-28 18:55:47,235 INFO    [MainProcess] tpc: OK: 10000014 eventos, 1.88 GB, 8.78 s (1138577 ev/s, 213.8 MB/s). Total de pared 8.79 s.
+receptor salio con codigo 143
+2026-09-28 18:55:47,232 INFO    receptor: part-002.jsonl cerrado: 2513970/2513970 eventos, 472.1 MB en 8.8 s (completo)
+2026-09-28 18:55:47,244 INFO    receptor: apagado limpio: 10,000,014 eventos persistidos en esta sesion
+
+$ wc -l "$DIR_DATOS"/*.jsonl | tail -n 1
+  10000014 total
+
+==================================================================
+  Resumen (eventos por segundo que informa el simulador en cada corrida)
+==================================================================
+  1204794 ev/s
+  1204699 ev/s
+  1138577 ev/s
+mediana: 1204699 ev/s

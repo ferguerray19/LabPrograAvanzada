@@ -32,8 +32,22 @@ venv/
 # Perfiles de cProfile
 *.prof
 
+# Parametros locales de Docker Compose (se versiona .env.example)
+.env
+
+# Evidencias generadas por los scripts de lab/ (se capturan para el informe)
+# Se conservan las evidencias del informe Docker.
+
 # Sistema operativo y editores
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
+
+# Datos reproducibles y archivos auxiliares locales
+*.crc
+lab_fs2/data/raw/*
+!lab_fs2/data/raw/.gitkeep
+!lab_fs2/data/raw/manifiesto_receptor.json
+!lab_fs2/historico/data_raw/*.jsonl
+lab_fs2/salida_fase2/bronze_raw.parquet/

@@ -1,0 +1,45 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.v1
+#1 transferring dockerfile: 711B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 1.24kB done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 transferring context: 1.02kB done
+#4 DONE 0.0s
+
+#5 [1/5] FROM docker.io/library/python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f
+#5 resolve docker.io/library/python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f 0.0s done
+#5 DONE 0.0s
+
+#6 [2/5] WORKDIR /app
+#6 CACHED
+
+#7 [3/5] COPY requirements.txt .
+#7 DONE 0.0s
+
+#8 [4/5] RUN pip install --no-cache-dir -r requirements.txt
+#8 0.842 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+#8 DONE 0.9s
+
+#9 [5/5] COPY src/ ./src/
+#9 DONE 0.0s
+
+#10 exporting to image
+#10 exporting layers 0.1s done
+#10 exporting manifest sha256:d99e2fe116a9050ebad3487ee6521bfe70172ed4653545cc36afb1c0816eeb91 done
+#10 exporting config sha256:8688fa549c90f275a9092512b5117936f1d5fd77504b7119bba010f46a5a465b done
+#10 exporting attestation manifest sha256:5e8543666c91af1593dd03c6c672967670c8950b0a7415e862949377ef19e766 0.0s done
+#10 exporting manifest list sha256:0f75ffa2e935681f330d1b2952cffe872a8092dfe7cd7a9f02e55670a2336056 done
+#10 naming to docker.io/library/proyecto:v1 done
+#10 unpacking to docker.io/library/proyecto:v1 0.0s done
+#10 DONE 0.2s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/gm0r8lf0df386jy2l193io59s

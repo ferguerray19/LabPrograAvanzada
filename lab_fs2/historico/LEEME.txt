@@ -1,0 +1,1 @@
+Respaldo de la versión de GitHub anterior a la integración del 24-11-2026. No ejecutar como entrega actual. Sus datos se movieron a data_raw para no mezclarlos con los diez millones de registros actuales. Usar ../fase2_pyspark.ipynb y ../fase3_lab11_feature_engineering.ipynb. Las rutas originales de estos notebooks históricos no se adaptaron.

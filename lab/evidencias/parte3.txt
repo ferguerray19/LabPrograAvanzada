@@ -1,0 +1,432 @@
+# 2026-09-28 18:52:56  MINGW64_NT-10.0-26200 3.6.9-b4195d69.x86_64 x86_64  Docker version 29.8.1, build 4a63305
+
+==================================================================
+  3.1 Parametrizacion con .env
+==================================================================
+
+$ grep -vE '^\s*(#|$)' .env
+COMPOSE_PROJECT_NAME=lab-bigdata
+TCP_HOST=ingestor-tcp        # nombre DNS del servicio receptor, NO localhost
+TCP_PORT=9009
+TOTAL_EVENTOS=10000000       # piso: se redondea al tick completo (10.000.014)
+N_PROCESOS=4
+BATCH_SIZE=50000
+HOST_DATA_DIR=./data/raw     # carpeta del host (bind mount)
+DATA_DIR=/app/data           # donde la ve el contenedor
+MEM_INGESTOR=1g
+MEM_SIMULADOR=512m
+REPORTE_S=5
+
+==================================================================
+  3.3 Preparar el volumen (el contenedor escribe como UID 10001)
+==================================================================
+
+$ sudo rm -f "$HOST_DATA_DIR"/*.jsonl "$HOST_DATA_DIR"/manifiesto_receptor.json
+
+$ sudo chown -R 10001:10001 "$HOST_DATA_DIR"
+
+$ ls -ld "$HOST_DATA_DIR"
+drwxr-xr-x 1 Ignacio 197121 0 Sep 28 18:52 ./data/raw
+AVISO: MINGW64_NT-10.0-26200 con Docker Desktop: ./data/raw es una carpeta de Windows y el
+bind mount no aplica UIDs (dueno visto: 197609). Prueba con permisos Linux reales:
+bash lab/prueba_permisos.sh
+
+==================================================================
+  3.4 Validar el YAML (interpola el .env), construir y levantar
+==================================================================
+
+$ docker compose config
+name: lab-bigdata
+services:
+  ingestor-tcp:
+    build:
+      context: C:\Users\Ignacio\Desktop\Programación Avanzada\Lab 2\LabPrograAvanzada_2
+      dockerfile: Dockerfile
+      target: runtime
+    cap_drop:
+      - ALL
+    command:
+      - python
+      - -u
+      - src/receptor_tcp.py
+    container_name: ingestor-tcp
+    environment:
+      BIND_HOST: 0.0.0.0
+      DATA_DIR: /app/data
+      REPORTE_S: "5"
+      TCP_PORT: "9009"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import socket,os; socket.create_connection(('127.0.0.1', int(os.environ['TCP_PORT'])),
+          3).close()"
+      timeout: 5s
+      interval: 5s
+      retries: 5
+      start_period: 5s
+    image: proyecto/ingestor:v2
+    mem_limit: "1073741824"
+    networks:
+      red-datos: null
+    ports:
+      - mode: ingress
+        host_ip: 127.0.0.1
+        target: 9009
+        published: "9009"
+        protocol: tcp
+    read_only: true
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    tmpfs:
+      - /tmp
+    volumes:
+      - type: bind
+        source: C:\Users\Ignacio\Desktop\Programación Avanzada\Lab 2\LabPrograAvanzada_2\data\raw
+        target: /app/data
+        bind: {}
+  simulador-puerto:
+    build:
+      context: C:\Users\Ignacio\Desktop\Programación Avanzada\Lab 2\LabPrograAvanzada_2
+      dockerfile: Dockerfile
+      target: runtime
+    cap_drop:
+      - ALL
+    command:
+      - python
+      - -u
+      - -m
+      - src.main
+      - --arch
+      - tcp
+      - --bench-csv
+      - ""
+    container_name: simulador-puerto
+    depends_on:
+      ingestor-tcp:
+        condition: service_healthy
+        required: true
+    environment:
+      BATCH_SIZE: "50000"
+      N_PROCESOS: "4"
+      TCP_HOST: ingestor-tcp
+      TCP_PORT: "9009"
+      TOTAL_EVENTOS: "10000000"
+    image: proyecto/simulador:v2
+    mem_limit: "536870912"
+    networks:
+      red-datos: null
+    read_only: true
+    restart: 'no'
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+networks:
+  red-datos:
+    name: red-datos-lab
+    driver: bridge
+x-endurecido:
+  cap_drop:
+    - ALL
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  tmpfs:
+    - /tmp
+
+$ docker compose build
+ Image proyecto/simulador:v2 Building 
+ Image proyecto/ingestor:v2 Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.26kB 0.0s done
+#1 DONE 0.0s
+
+#2 [ingestor-tcp internal] load build definition from Dockerfile
+#2 transferring dockerfile: 4.59kB done
+#2 DONE 0.0s
+
+#3 [auth] docker/dockerfile:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#4 [ingestor-tcp] resolve image config for docker-image://docker.io/docker/dockerfile:1
+#4 DONE 1.1s
+
+#5 [ingestor-tcp] docker-image://docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
+#5 resolve docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32 0.0s done
+#5 CACHED
+
+#6 [auth] library/python:pull token for registry-1.docker.io
+#6 DONE 0.0s
+
+#7 [ingestor-tcp internal] load metadata for docker.io/library/python:3.12-slim
+#7 DONE 0.8s
+
+#8 [simulador-puerto internal] load .dockerignore
+#8 transferring context: 1.24kB done
+#8 DONE 0.0s
+
+#9 [ingestor-tcp builder 1/5] FROM docker.io/library/python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f
+#9 resolve docker.io/library/python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f 0.0s done
+#9 DONE 0.0s
+
+#10 [simulador-puerto internal] load build context
+#10 transferring context: 22.87kB done
+#10 DONE 0.0s
+
+#11 [ingestor-tcp runtime 5/7] COPY --from=builder /opt/venv /opt/venv
+#11 CACHED
+
+#12 [ingestor-tcp builder 5/5] RUN pip --python /opt/venv/bin/python install --no-cache-dir -r requirements.txt
+#12 CACHED
+
+#13 [ingestor-tcp runtime 2/7] RUN apt-get update  && apt-get install -y --no-install-recommends tini  && rm -rf /var/lib/apt/lists/*
+#13 CACHED
+
+#14 [ingestor-tcp builder 2/5] RUN python -m venv --without-pip /opt/venv
+#14 CACHED
+
+#15 [ingestor-tcp runtime 6/7] COPY src/ ./src/
+#15 CACHED
+
+#16 [ingestor-tcp runtime 4/7] WORKDIR /app
+#16 CACHED
+
+#17 [ingestor-tcp builder 3/5] WORKDIR /app
+#17 CACHED
+
+#18 [ingestor-tcp builder 4/5] COPY requirements.txt .
+#18 CACHED
+
+#19 [ingestor-tcp runtime 3/7] RUN groupadd --gid 10001 appgroup  && useradd --uid 10001 --gid appgroup --no-create-home             --home-dir /nonexistent --shell /usr/sbin/nologin appuser
+#19 CACHED
+
+#20 [simulador-puerto runtime 7/7] RUN mkdir -p /app/data && chown appuser:appgroup /app/data
+#20 CACHED
+
+#21 [simulador-puerto] exporting to image
+#21 exporting layers done
+#21 exporting manifest sha256:a34cae02d129e78f5060592ee63011864cdfca5b2272bf18cccdd76af804154e 0.0s done
+#21 exporting config sha256:778239c545b66abc911b9534e7e26b518f44b52e96c8747f2d32e8072323ff1d 0.0s done
+#21 exporting attestation manifest sha256:cd1d63794179e8f18f32859088ade57689d39f98dac55d8b4186f273b52f020f 0.0s done
+#21 exporting manifest list sha256:4d018d9e7a2b3dc9be783360d3b2c8c7205b62e8c6d8b69f81ec1413c7050067 0.0s done
+#21 naming to docker.io/proyecto/simulador:v2 done
+#21 unpacking to docker.io/proyecto/simulador:v2 0.0s done
+#21 DONE 0.1s
+
+#22 [ingestor-tcp] exporting to image
+#22 exporting layers done
+#22 exporting manifest sha256:963f2de27ef1f8fbcb17571c2f226d57c3b7de98f7595428925a5da586e6ded1 0.0s done
+#22 exporting config sha256:774878e96afadfeac6f995976839d1cac9f133126de15845d7c9528d35e46f57 0.0s done
+#22 exporting attestation manifest sha256:1c6ef6bbdcfd1c1b3d75236a8ee0d493bc893d7c0577eb9e8d8a9163d315ba3c 0.0s done
+#22 exporting manifest list sha256:f08c001ae29c629bffb5f89bcecd0ef6dc5f603cb6c29556ca0acf1e31315cd2 0.0s done
+#22 naming to docker.io/proyecto/ingestor:v2 done
+#22 unpacking to docker.io/proyecto/ingestor:v2 0.0s done
+#22 DONE 0.1s
+
+#23 [simulador-puerto] resolving provenance for metadata file
+#23 DONE 0.0s
+
+#24 [ingestor-tcp] resolving provenance for metadata file
+#24 DONE 0.0s
+ Image proyecto/ingestor:v2 Built 
+ Image proyecto/simulador:v2 Built 
+
+$ docker compose up -d
+ Network red-datos-lab Creating 
+ Network red-datos-lab Creating 
+ Network red-datos-lab Created 
+ Network red-datos-lab Created 
+ Container ingestor-tcp Creating 
+ Container ingestor-tcp Created 
+ Container simulador-puerto Creating 
+ Container simulador-puerto Created 
+ Container ingestor-tcp Starting 
+ Container ingestor-tcp Started 
+ Container ingestor-tcp Waiting 
+ Container ingestor-tcp Healthy 
+ Container simulador-puerto Starting 
+ Container simulador-puerto Started 
+
+$ docker compose ps
+NAME               IMAGE                   COMMAND                  SERVICE            CREATED         STATUS                   PORTS
+ingestor-tcp       proyecto/ingestor:v2    "/usr/bin/tini -- py…"   ingestor-tcp       6 seconds ago   Up 5 seconds (healthy)   127.0.0.1:9009->9009/tcp
+simulador-puerto   proyecto/simulador:v2   "/usr/bin/tini -- py…"   simulador-puerto   6 seconds ago   Up Less than a second    9009/tcp
+
+==================================================================
+  3.4 Red privada: los 2 contenedores, sus IPs y la resolucion por nombre
+==================================================================
+
+$ docker network inspect red-datos-lab --format '{{range .Containers}}{{.Name}} -> {{.IPv4Address}}{{"\n"}}{{end}}'
+ingestor-tcp -> 172.18.0.2/16
+simulador-puerto -> 172.18.0.3/16
+
+
+$ docker compose exec simulador-puerto python -c "import socket; print(socket.gethostbyname('ingestor-tcp'))"
+172.18.0.2
+
+$ docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}'
+NAME               CPU %     MEM USAGE / LIMIT   MEM %
+simulador-puerto   386.62%   63.99MiB / 512MiB   12.50%
+ingestor-tcp       16.83%    40.01MiB / 1GiB     3.91%
+
+==================================================================
+  3.5 Durante la ingesta: el archivo crece en el host, en vivo
+==================================================================
+(equivale a: watch -n 2 'ls -lh data/raw/ && wc -l data/raw/*.jsonl')
+
+--- 18:53:09
+total 442M
+-rw-r--r-- 1 Ignacio 197121 111M Sep 28 18:53 part-000.jsonl
+-rw-r--r-- 1 Ignacio 197121 112M Sep 28 18:53 part-001.jsonl
+-rw-r--r-- 1 Ignacio 197121 105M Sep 28 18:53 part-002.jsonl
+-rw-r--r-- 1 Ignacio 197121 113M Sep 28 18:53 part-003.jsonl
+  2606921 total
+simulador-puerto: CPU 387.97%  MEM 61.47MiB / 512MiB
+ingestor-tcp: CPU 15.96%  MEM 47MiB / 1GiB
+
+--- 18:53:14
+total 1.4G
+-rw-r--r-- 1 Ignacio 197121 346M Sep 28 18:53 part-000.jsonl
+-rw-r--r-- 1 Ignacio 197121 340M Sep 28 18:53 part-001.jsonl
+-rw-r--r-- 1 Ignacio 197121 339M Sep 28 18:53 part-002.jsonl
+-rw-r--r-- 1 Ignacio 197121 340M Sep 28 18:53 part-003.jsonl
+   7898135 total
+simulador-puerto: CPU 386.90%  MEM 60.08MiB / 512MiB
+ingestor-tcp: CPU 17.40%  MEM 39.43MiB / 1GiB
+
+==================================================================
+  3.5 Al terminar el simulador (codigo de salida 0, 18.9 s)
+==================================================================
+
+$ docker compose ps -a
+NAME               IMAGE                   COMMAND                  SERVICE            CREATED          STATUS                     PORTS
+ingestor-tcp       proyecto/ingestor:v2    "/usr/bin/tini -- py…"   ingestor-tcp       19 seconds ago   Up 18 seconds (healthy)    127.0.0.1:9009->9009/tcp
+simulador-puerto   proyecto/simulador:v2   "/usr/bin/tini -- py…"   simulador-puerto   19 seconds ago   Exited (0) 2 seconds ago   
+
+$ wc -l data/raw/*.jsonl
+   2513970 data/raw/part-000.jsonl
+   2513970 data/raw/part-001.jsonl
+   2513970 data/raw/part-002.jsonl
+   2458104 data/raw/part-003.jsonl
+  10000014 total
+
+$ du -sh data/raw/
+1.8G	data/raw/
+
+$ head -n 2 data/raw/*.jsonl
+==> data/raw/part-000.jsonl <==
+{"timestamp":"2026-08-24T00:00:00.000Z","sensor_id":"REEFER_S3_01","metric":"temperature","value":-17.88,"unit":"C","worker_id":0,"site":"S3","asset_type":"reefer","status":"OK","seq":0}
+{"timestamp":"2026-08-24T00:00:00.000Z","sensor_id":"REEFER_S3_01","metric":"humidity","value":84.1,"unit":"%","worker_id":0,"site":"S3","asset_type":"reefer","status":"OK","seq":0}
+
+==> data/raw/part-001.jsonl <==
+{"timestamp":"2026-08-24T00:00:00.000Z","sensor_id":"REEFER_S3_02","metric":"temperature","value":-18.0,"unit":"C","worker_id":1,"site":"S3","asset_type":"reefer","status":"OK","seq":0}
+{"timestamp":"2026-08-24T00:00:00.000Z","sensor_id":"REEFER_S3_02","metric":"humidity","value":83.77,"unit":"%","worker_id":1,"site":"S3","asset_type":"reefer","status":"OK","seq":0}
+
+==> data/raw/part-002.jsonl <==
+{"timestamp":"2026-08-24T00:00:00.000Z","sensor_id":"REEFER_S3_03","metric":"temperature","value":-17.94,"unit":"C","worker_id":2,"site":"S3","asset_type":"reefer","status":"OK","seq":0}
+{"timestamp":"2026-08-24T00:00:00.000Z","sensor_id":"REEFER_S3_03","metric":"humidity","value":84.86,"unit":"%","worker_id":2,"site":"S3","asset_type":"reefer","status":"OK","seq":0}
+
+==> data/raw/part-003.jsonl <==
+{"timestamp":"2026-08-24T00:00:00.000Z","sensor_id":"REEFER_S3_04","metric":"temperature","value":-18.21,"unit":"C","worker_id":3,"site":"S3","asset_type":"reefer","status":"OK","seq":0}
+{"timestamp":"2026-08-24T00:00:00.000Z","sensor_id":"REEFER_S3_04","metric":"humidity","value":81.15,"unit":"%","worker_id":3,"site":"S3","asset_type":"reefer","status":"OK","seq":0}
+
+$ docker compose logs --no-log-prefix simulador-puerto | tail -n 3
+2026-09-28 21:53:06,857 INFO    [MainProcess] tpc: plan: 4 workers, 179 puntos x 55866 ticks = 10000014 eventos (9.70 dias simulados)
+2026-09-28 21:53:06,873 INFO    [MainProcess] src.arquitectura_tcp: corrida 20260928T215306-tcp-w4 -> ingestor-tcp:9009, reparto de carga: [45, 45, 45, 44] puntos por worker
+2026-09-28 21:53:17,094 INFO    [MainProcess] tpc: OK: 10000014 eventos, 1.88 GB, 10.22 s (978477 ev/s, 183.7 MB/s). Total de pared 10.23 s.
+
+$ docker compose logs ingestor-tcp | tail -n 12
+ingestor-tcp  | 2026-09-28 21:53:01,632 INFO    receptor: escuchando en 0.0.0.0:9009 | escribiendo en /app/data | pid 7
+ingestor-tcp  | 2026-09-28 21:53:06,884 INFO    receptor: corrida nueva: 20260928T215306-tcp-w4 (4 workers)
+ingestor-tcp  | 2026-09-28 21:53:06,888 INFO    receptor: conexion 4 desde ('172.18.0.3', 59036) -> part-001.jsonl (2513970 eventos anunciados)
+ingestor-tcp  | 2026-09-28 21:53:06,890 INFO    receptor: conexion 3 desde ('172.18.0.3', 59030) -> part-002.jsonl (2513970 eventos anunciados)
+ingestor-tcp  | 2026-09-28 21:53:06,892 INFO    receptor: conexion 5 desde ('172.18.0.3', 59038) -> part-000.jsonl (2513970 eventos anunciados)
+ingestor-tcp  | 2026-09-28 21:53:06,894 INFO    receptor: conexion 6 desde ('172.18.0.3', 59058) -> part-003.jsonl (2458104 eventos anunciados)
+ingestor-tcp  | 2026-09-28 21:53:11,635 INFO    receptor: progreso: 4,629,891 eventos | 868.3 MB | 925,476 ev/s | 4 conexiones activas
+ingestor-tcp  | 2026-09-28 21:53:16,643 INFO    receptor: progreso: 9,728,264 eventos | 1826.6 MB | 1,018,079 ev/s | 4 conexiones activas
+ingestor-tcp  | 2026-09-28 21:53:16,740 INFO    receptor: part-003.jsonl cerrado: 2458104/2458104 eventos, 461.4 MB en 9.8 s (completo)
+ingestor-tcp  | 2026-09-28 21:53:16,808 INFO    receptor: part-000.jsonl cerrado: 2513970/2513970 eventos, 472.1 MB en 9.9 s (completo)
+ingestor-tcp  | 2026-09-28 21:53:16,867 INFO    receptor: part-001.jsonl cerrado: 2513970/2513970 eventos, 472.1 MB en 10.0 s (completo)
+ingestor-tcp  | 2026-09-28 21:53:17,091 INFO    receptor: part-002.jsonl cerrado: 2513970/2513970 eventos, 472.1 MB en 10.2 s (completo)
+
+$ head -n 9 data/raw/manifiesto_receptor.json
+{
+  "actualizado_utc": "2026-09-28T21:53:17+00:00",
+  "protocolo": "tpc-s3/1",
+  "corrida": "20260928T215306-tcp-w4",
+  "workers_anunciados": 4,
+  "total_recibido": 10000014,
+  "total_bytes": 1877676777,
+  "archivos_completos": 4,
+  "archivos": [
+
+==================================================================
+  3.5 Cierre limpio y prueba definitiva de persistencia
+==================================================================
+
+$ docker compose stop
+ Container simulador-puerto Stopping 
+ Container simulador-puerto Stopped 
+ Container ingestor-tcp Stopping 
+ Container ingestor-tcp Stopped 
+
+$ docker inspect ingestor-tcp --format 'ingestor-tcp ExitCode={{.State.ExitCode}}'
+ingestor-tcp ExitCode=143
+
+$ docker compose logs --no-log-prefix ingestor-tcp | tail -n 2
+2026-09-28 21:53:21,935 INFO    receptor: SIGTERM recibido: cerrando sockets y haciendo flush del .jsonl
+2026-09-28 21:53:21,935 INFO    receptor: apagado limpio: 10,000,014 eventos persistidos en esta sesion
+
+$ docker compose down
+ Container simulador-puerto Stopping 
+ Container simulador-puerto Stopped 
+ Container simulador-puerto Removing 
+ Container simulador-puerto Removed 
+ Container ingestor-tcp Stopping 
+ Container ingestor-tcp Stopped 
+ Container ingestor-tcp Removing 
+ Container ingestor-tcp Removed 
+ Network red-datos-lab Removing 
+ Network red-datos-lab Removed 
+
+$ docker compose ps -a
+NAME      IMAGE     COMMAND   SERVICE   CREATED   STATUS    PORTS
+(sin contenedores)
+
+$ ls -lh data/raw/
+total 1.8G
+-rw-r--r-- 1 Ignacio 197121 1.3K Sep 28 18:53 manifiesto_receptor.json
+-rw-r--r-- 1 Ignacio 197121 451M Sep 28 18:53 part-000.jsonl
+-rw-r--r-- 1 Ignacio 197121 451M Sep 28 18:53 part-001.jsonl
+-rw-r--r-- 1 Ignacio 197121 451M Sep 28 18:53 part-002.jsonl
+-rw-r--r-- 1 Ignacio 197121 441M Sep 28 18:53 part-003.jsonl
+
+$ wc -l data/raw/*.jsonl | tail -n 1
+  10000014 total
+Los datos SIGUEN en el host despues de destruir los contenedores y la red.
+
+==================================================================
+  Validacion completa del dataset (todas las lineas, esquema campo a campo)
+==================================================================
+
+$ python3 -m bench.validar data/raw --profundo
+        part-000.jsonl     2,513,970 lineas
+        part-001.jsonl     2,513,970 lineas
+        part-002.jsonl     2,513,970 lineas
+        part-003.jsonl     2,458,104 lineas
+
+Eventos validos     : 10,000,014
+Bytes en disco      : 1,877,676,777 (1.88 GB)
+Bytes por evento    : 187.8
+Sensores distintos  : 69
+Ventana temporal    : 2026-08-24T00:00:00.000Z  ->  2026-09-02T16:46:15.000Z
+Por metrica         : {'temperature': 3351960, 'humidity': 2681568, 'current': 3128496, 'vibration': 335196, 'weight': 502794}
+Por status          : {'OK': 9992911, 'WARN': 4905, 'ALARM': 2198}  (0.071% no-OK)
+Por worker          : [2513970, 2513970, 2513970, 2458104]
+Desbalance          : 2.22%
+
+OK: dataset valido.
+
+Evidencia completa en lab/evidencias/parte3.txt

@@ -1,0 +1,98 @@
+# 2026-09-28 19:22:58  MINGW64_NT-10.0-26200 3.6.9-b4195d69.x86_64 x86_64  Docker version 29.8.1, build 4a63305
+
+==================================================================
+  MEM_INGESTOR=1g  (2000000 eventos, N_PROCESOS=segun .env)
+==================================================================
+muestreo durante la corrida (401 muestras cada 20 ms, lab/evidencias/limite_ingestor_muestreo_1g.tsv):
+  max memory.current=56029184 B (t=5.290 s, sock en ese instante=16793600 B) | max sock=19599360 B
+  muestras con memory.current > memory.max: 0 (max sock en ellas=0 B)
+  memory.events al final: max=0 oom=0 oom_kill=0
+resultado: OK, 2000146 eventos | simulador: 0 | reinicios: 0
+crudo: memory.max=1073741824 B | memory.peak=56238080 B | VmHWM=46792 kB | sock=0 B | oom_kill=0
+MiB:   memory.max=1024.0 MiB | memory.peak=53.6 MiB | VmHWM=45.7 MiB
+2026-09-28 22:22:59,476 INFO    receptor: escuchando en 0.0.0.0:9009 | escribiendo en /app/data | pid 7
+2026-09-28 22:23:06,781 INFO    receptor: part-003.jsonl cerrado: 491656/491656 eventos, 91.9 MB en 1.9 s (completo)
+2026-09-28 22:23:06,860 INFO    receptor: part-000.jsonl cerrado: 502830/502830 eventos, 94.0 MB en 2.0 s (completo)
+2026-09-28 22:23:06,909 INFO    receptor: part-002.jsonl cerrado: 502830/502830 eventos, 94.0 MB en 2.0 s (completo)
+2026-09-28 22:23:06,949 INFO    receptor: part-001.jsonl cerrado: 502830/502830 eventos, 94.0 MB en 2.0 s (completo)
+
+==================================================================
+  MEM_INGESTOR=256m  (2000000 eventos, N_PROCESOS=segun .env)
+==================================================================
+muestreo durante la corrida (400 muestras cada 20 ms, lab/evidencias/limite_ingestor_muestreo_256m.tsv):
+  max memory.current=59469824 B (t=5.158 s, sock en ese instante=20639744 B) | max sock=20639744 B
+  muestras con memory.current > memory.max: 0 (max sock en ellas=0 B)
+  memory.events al final: max=0 oom=0 oom_kill=0
+resultado: OK, 2000146 eventos | simulador: 0 | reinicios: 0
+crudo: memory.max=268435456 B | memory.peak=59469824 B | VmHWM=46996 kB | sock=0 B | oom_kill=0
+MiB:   memory.max=256.0 MiB | memory.peak=56.7 MiB | VmHWM=45.9 MiB
+2026-09-28 22:23:12,635 INFO    receptor: escuchando en 0.0.0.0:9009 | escribiendo en /app/data | pid 7
+2026-09-28 22:23:19,967 INFO    receptor: part-003.jsonl cerrado: 491656/491656 eventos, 91.9 MB en 1.9 s (completo)
+2026-09-28 22:23:20,034 INFO    receptor: part-000.jsonl cerrado: 502830/502830 eventos, 94.0 MB en 1.9 s (completo)
+2026-09-28 22:23:20,093 INFO    receptor: part-002.jsonl cerrado: 502830/502830 eventos, 94.0 MB en 2.0 s (completo)
+2026-09-28 22:23:20,131 INFO    receptor: part-001.jsonl cerrado: 502830/502830 eventos, 94.0 MB en 2.0 s (completo)
+
+==================================================================
+  MEM_INGESTOR=64m  (2000000 eventos, N_PROCESOS=segun .env)
+==================================================================
+muestreo durante la corrida (403 muestras cada 20 ms, lab/evidencias/limite_ingestor_muestreo_64m.tsv):
+  max memory.current=53444608 B (t=5.348 s, sock en ese instante=14651392 B) | max sock=14671872 B
+  muestras con memory.current > memory.max: 0 (max sock en ellas=0 B)
+  memory.events al final: max=0 oom=0 oom_kill=0
+resultado: OK, 2000146 eventos | simulador: 0 | reinicios: 0
+crudo: memory.max=67108864 B | memory.peak=53641216 B | VmHWM=46660 kB | sock=0 B | oom_kill=0
+MiB:   memory.max=64.0 MiB | memory.peak=51.2 MiB | VmHWM=45.6 MiB
+2026-09-28 22:23:25,707 INFO    receptor: escuchando en 0.0.0.0:9009 | escribiendo en /app/data | pid 7
+2026-09-28 22:23:33,052 INFO    receptor: part-001.jsonl cerrado: 502830/502830 eventos, 94.0 MB en 1.9 s (completo)
+2026-09-28 22:23:33,133 INFO    receptor: part-002.jsonl cerrado: 502830/502830 eventos, 94.0 MB en 2.0 s (completo)
+2026-09-28 22:23:33,167 INFO    receptor: part-003.jsonl cerrado: 491656/491656 eventos, 91.9 MB en 2.1 s (completo)
+2026-09-28 22:23:33,181 INFO    receptor: part-000.jsonl cerrado: 502830/502830 eventos, 94.0 MB en 2.1 s (completo)
+
+==================================================================
+  MEM_INGESTOR=48m  (2000000 eventos, N_PROCESOS=segun .env)
+==================================================================
+muestreo durante la corrida (418 muestras cada 20 ms, lab/evidencias/limite_ingestor_muestreo_48m.tsv):
+  max memory.current=50274304 B (t=5.286 s, sock en ese instante=14974976 B) | max sock=23212032 B
+  muestras con memory.current > memory.max: 0 (max sock en ellas=0 B)
+  memory.events al final: max=2088 oom=0 oom_kill=0
+resultado: OK, 2000146 eventos | simulador: 0 | reinicios: 0
+crudo: memory.max=50331648 B | memory.peak=54652928 B | VmHWM=45904 kB | sock=0 B | oom_kill=0
+MiB:   memory.max=48.0 MiB | memory.peak=52.1 MiB | VmHWM=44.8 MiB
+ATENCION: memory.peak supera a memory.max en 4321280 bytes
+2026-09-28 22:23:38,994 INFO    receptor: escuchando en 0.0.0.0:9009 | escribiendo en /app/data | pid 7
+2026-09-28 22:23:46,692 INFO    receptor: part-003.jsonl cerrado: 491656/491656 eventos, 91.9 MB en 2.1 s (completo)
+2026-09-28 22:23:46,842 INFO    receptor: part-000.jsonl cerrado: 502830/502830 eventos, 94.0 MB en 2.2 s (completo)
+2026-09-28 22:23:46,857 INFO    receptor: part-002.jsonl cerrado: 502830/502830 eventos, 94.0 MB en 2.2 s (completo)
+2026-09-28 22:23:46,861 INFO    receptor: part-001.jsonl cerrado: 502830/502830 eventos, 94.0 MB en 2.2 s (completo)
+
+==================================================================
+  MEM_INGESTOR=32m  (2000000 eventos, N_PROCESOS=segun .env)
+==================================================================
+muestreo durante la corrida (367 muestras cada 20 ms, lab/evidencias/limite_ingestor_muestreo_32m.tsv):
+  max memory.current=33927168 B (t=5.531 s, sock en ese instante=23621632 B) | max sock=23625728 B
+  muestras con memory.current > memory.max: 3 (max sock en ellas=23621632 B)
+  memory.events al final: max=0 oom=0 oom_kill=0
+resultado: FALLA: 347344 eventos en disco | simulador: 1 | reinicios: 1
+crudo: memory.max=33554432 B | memory.peak=24657920 B | VmHWM=27176 kB | sock=0 B | oom_kill=0
+MiB:   memory.max=32.0 MiB | memory.peak=23.5 MiB | VmHWM=26.5 MiB
+2026-09-28 22:23:52,846 INFO    receptor: escuchando en 0.0.0.0:9009 | escribiendo en /app/data | pid 7
+2026-09-28 22:24:00,506 INFO    receptor: escuchando en 0.0.0.0:9009 | escribiendo en /app/data | pid 7
+
+==================================================================
+  Resumen
+==================================================================
+| MEM_INGESTOR (memory.max) | Resultado | Salida simulador | Reinicios | Pico RSS receptor (VmHWM) | Pico del cgroup (memory.peak) |
+|---|---|---|---|---|---|
+| 1g (1024.0 MiB) | OK, 2000146 eventos | 0 | 0 | 45.7 MiB | 53.6 MiB |
+| 256m (256.0 MiB) | OK, 2000146 eventos | 0 | 0 | 45.9 MiB | 56.7 MiB |
+| 64m (64.0 MiB) | OK, 2000146 eventos | 0 | 0 | 45.6 MiB | 51.2 MiB |
+| 48m (48.0 MiB) | OK, 2000146 eventos | 0 | 0 | 44.8 MiB | 52.1 MiB |
+| 32m (32.0 MiB) | FALLA: 347344 eventos en disco | 1 | 1 | 26.5 MiB | 23.5 MiB |
+
+Valores crudos (lab/evidencias/limite_ingestor_crudo.tsv):
+MEM_INGESTOR  memory.max_B  memory.peak_B  VmHWM_kB  sock_B  oom_kill  reinicios  simulador  lineas
+1g            1073741824    56238080       46792     0       0         0          0          2000146
+256m          268435456     59469824       46996     0       0         0          0          2000146
+64m           67108864      53641216       46660     0       0         0          0          2000146
+48m           50331648      54652928       45904     0       0         0          0          2000146
+32m           33554432      24657920       27176     0       0         1          1          347344

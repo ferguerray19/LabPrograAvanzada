@@ -1,0 +1,1 @@
+{"class":"org.apache.spark.ml.feature.VectorAssembler","timestamp":1795553989733,"sparkVersion":"4.0.1","uid":"VectorAssembler_e215c3d11cbe","paramMap":{"inputCols":["z_prom_imp","desv_z_imp","rango_z_imp","delta_z_imp","frac_confiable","hora_sin","hora_cos"],"outputCol":"num_vec"},"defaultParamMap":{"outputCol":"VectorAssembler_e215c3d11cbe__output","handleInvalid":"error"}}

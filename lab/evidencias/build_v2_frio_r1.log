@@ -1,0 +1,119 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 4.59kB done
+#1 DONE 0.0s
+
+#2 resolve image config for docker-image://docker.io/docker/dockerfile:1
+#2 ...
+
+#3 [auth] docker/dockerfile:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 resolve image config for docker-image://docker.io/docker/dockerfile:1
+#2 DONE 2.0s
+
+#4 docker-image://docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
+#4 resolve docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32 0.0s done
+#4 CACHED
+
+#5 [internal] load metadata for docker.io/library/python:3.12-slim
+#5 ...
+
+#6 [auth] library/python:pull token for registry-1.docker.io
+#6 DONE 0.0s
+
+#5 [internal] load metadata for docker.io/library/python:3.12-slim
+#5 DONE 1.0s
+
+#7 [internal] load .dockerignore
+#7 transferring context: 1.24kB done
+#7 DONE 0.0s
+
+#8 [builder 1/5] FROM docker.io/library/python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f
+#8 resolve docker.io/library/python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f 0.0s done
+#8 CACHED
+
+#9 [internal] load build context
+#9 transferring context: 1.02kB done
+#9 DONE 0.0s
+
+#10 [builder 2/5] RUN python -m venv --without-pip /opt/venv
+#10 DONE 0.4s
+
+#11 [runtime 2/7] RUN apt-get update  && apt-get install -y --no-install-recommends tini  && rm -rf /var/lib/apt/lists/*
+#11 ...
+
+#12 [builder 3/5] WORKDIR /app
+#12 DONE 0.0s
+
+#13 [builder 4/5] COPY requirements.txt .
+#13 DONE 0.0s
+
+#11 [runtime 2/7] RUN apt-get update  && apt-get install -y --no-install-recommends tini  && rm -rf /var/lib/apt/lists/*
+#11 0.479 Hit:1 http://deb.debian.org/debian trixie InRelease
+#11 0.509 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.3 kB]
+#11 0.606 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#11 0.710 Get:4 http://deb.debian.org/debian trixie/main amd64 Packages [9678 kB]
+#11 ...
+
+#14 [builder 5/5] RUN pip --python /opt/venv/bin/python install --no-cache-dir -r requirements.txt
+#14 DONE 1.0s
+
+#11 [runtime 2/7] RUN apt-get update  && apt-get install -y --no-install-recommends tini  && rm -rf /var/lib/apt/lists/*
+#11 70.85 Get:5 http://deb.debian.org/debian trixie-updates/main amd64 Packages [4412 B]
+#11 70.89 Get:6 http://deb.debian.org/debian-security trixie-security/main amd64 Packages [261 kB]
+#11 71.54 Fetched 10.0 MB in 1min 11s (141 kB/s)
+#11 71.54 Reading package lists...
+#11 71.85 Reading package lists...
+#11 72.15 Building dependency tree...
+#11 72.22 Reading state information...
+#11 72.34 The following NEW packages will be installed:
+#11 72.34   tini
+#11 72.43 0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+#11 72.43 Need to get 280 kB of archives.
+#11 72.43 After this operation, 783 kB of additional disk space will be used.
+#11 72.43 Get:1 http://deb.debian.org/debian trixie/main amd64 tini amd64 0.19.0-3+b8 [280 kB]
+#11 72.81 debconf: unable to initialize frontend: Dialog
+#11 72.81 debconf: (TERM is not set, so the dialog frontend is not usable.)
+#11 72.81 debconf: falling back to frontend: Readline
+#11 72.81 debconf: unable to initialize frontend: Readline
+#11 72.81 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/x86_64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, <STDIN> line 1.)
+#11 72.81 debconf: falling back to frontend: Teletype
+#11 72.81 debconf: unable to initialize frontend: Teletype
+#11 72.81 debconf: (This frontend requires a controlling tty.)
+#11 72.81 debconf: falling back to frontend: Noninteractive
+#11 73.13 Fetched 280 kB in 0s (798 kB/s)
+#11 73.15 Selecting previously unselected package tini.
+#11 73.15 (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 5660 files and directories currently installed.)
+#11 73.16 Preparing to unpack .../tini_0.19.0-3+b8_amd64.deb ...
+#11 73.16 Unpacking tini (0.19.0-3+b8) ...
+#11 73.19 Setting up tini (0.19.0-3+b8) ...
+#11 DONE 73.2s
+
+#15 [runtime 3/7] RUN groupadd --gid 10001 appgroup  && useradd --uid 10001 --gid appgroup --no-create-home             --home-dir /nonexistent --shell /usr/sbin/nologin appuser
+#15 DONE 0.3s
+
+#16 [runtime 4/7] WORKDIR /app
+#16 DONE 0.0s
+
+#17 [runtime 5/7] COPY --from=builder /opt/venv /opt/venv
+#17 DONE 0.1s
+
+#18 [runtime 6/7] COPY src/ ./src/
+#18 DONE 0.0s
+
+#19 [runtime 7/7] RUN mkdir -p /app/data && chown appuser:appgroup /app/data
+#19 DONE 0.2s
+
+#20 exporting to image
+#20 exporting layers 0.1s done
+#20 exporting manifest sha256:f1e847616dad63f969026f05fa5c5f8f055ffccfd6143c2819e9a38b7ed7594b done
+#20 exporting config sha256:6c8f726b05d310f250c8347ebc7b6a85a9368a13d74d3c85507ed70df3a23837 done
+#20 exporting attestation manifest sha256:945c9eb93e209d8ec96bd4e754a22c8ddf5a95b8562cf4d647e118ddec7ad780 done
+#20 exporting manifest list sha256:de2abb82818be4a4c9cfc7b8c5eb7980a5d191d69f7da44b7203353007ddd494 done
+#20 naming to docker.io/library/proyecto:v2 done
+#20 unpacking to docker.io/library/proyecto:v2 0.1s done
+#20 DONE 0.2s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/uubvdi58k1mfeh2b23u57utgp

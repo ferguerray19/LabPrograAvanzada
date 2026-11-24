@@ -1,0 +1,60 @@
+# 2026-09-28 19:24:05  MINGW64_NT-10.0-26200 3.6.9-b4195d69.x86_64 x86_64  Docker version 29.8.1, build 4a63305
+
+==================================================================
+  Parametros (del .env) y version de Python dentro del contenedor
+==================================================================
+
+$ grep -E '^(TOTAL_EVENTOS|N_PROCESOS|BATCH_SIZE|TCP_HOST|TCP_PORT)=' .env | sed 's/[[:space:]]*#.*//'
+TCP_HOST=ingestor-tcp
+TCP_PORT=9009
+TOTAL_EVENTOS=10000000
+N_PROCESOS=4
+BATCH_SIZE=50000
+
+$ docker run --rm --entrypoint python proyecto/simulador:v2 --version
+Python 3.12.14
+(el simulador corre con --arch tcp: ver command: en docker-compose.yml)
+
+==================================================================
+  Corrida en contenedores 1 de 3
+==================================================================
+
+$ docker compose logs --no-log-prefix simulador-puerto | grep -E 'tpc: (plan|OK)'
+2026-09-28 22:24:12,089 INFO    [MainProcess] tpc: plan: 4 workers, 179 puntos x 55866 ticks = 10000014 eventos (9.70 dias simulados)
+2026-09-28 22:24:22,321 INFO    [MainProcess] tpc: OK: 10000014 eventos, 1.88 GB, 10.22 s (978764 ev/s, 183.8 MB/s). Total de pared 10.22 s.
+simulador-puerto salio con codigo 0
+
+$ cat "$DIR"/*.jsonl | wc -l
+10000014
+
+==================================================================
+  Corrida en contenedores 2 de 3
+==================================================================
+
+$ docker compose logs --no-log-prefix simulador-puerto | grep -E 'tpc: (plan|OK)'
+2026-09-28 22:24:31,253 INFO    [MainProcess] tpc: plan: 4 workers, 179 puntos x 55866 ticks = 10000014 eventos (9.70 dias simulados)
+2026-09-28 22:24:41,401 INFO    [MainProcess] tpc: OK: 10000014 eventos, 1.88 GB, 10.13 s (987198 ev/s, 185.4 MB/s). Total de pared 10.13 s.
+simulador-puerto salio con codigo 0
+
+$ cat "$DIR"/*.jsonl | wc -l
+10000014
+
+==================================================================
+  Corrida en contenedores 3 de 3
+==================================================================
+
+$ docker compose logs --no-log-prefix simulador-puerto | grep -E 'tpc: (plan|OK)'
+2026-09-28 22:24:50,425 INFO    [MainProcess] tpc: plan: 4 workers, 179 puntos x 55866 ticks = 10000014 eventos (9.70 dias simulados)
+2026-09-28 22:25:00,443 INFO    [MainProcess] tpc: OK: 10000014 eventos, 1.88 GB, 10.00 s (999772 ev/s, 187.7 MB/s). Total de pared 10.01 s.
+simulador-puerto salio con codigo 0
+
+$ cat "$DIR"/*.jsonl | wc -l
+10000014
+
+==================================================================
+  Resumen (eventos por segundo que informa el simulador en cada corrida)
+==================================================================
+  978764 ev/s
+  987198 ev/s
+  999772 ev/s
+mediana: 987198 ev/s

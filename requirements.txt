@@ -1,0 +1,11 @@
+# Dependencias de EJECUCION del simulador y del receptor TCP.
+#
+# Vacio a proposito: ambos usan exclusivamente la biblioteca estandar de
+# Python 3.11+ (asyncio, multiprocessing, socket, json). El archivo existe
+# igual porque el Dockerfile lo copia ANTES que el codigo: esa capa queda en
+# cache y un cambio en src/ no reinstala nada. Si algun dia se agrega una
+# dependencia, se agrega aqui y el patron sigue funcionando sin tocar el
+# Dockerfile.
+#
+# matplotlib NO va aqui: solo lo usa bench/graficos.py para las figuras del
+# informe, fuera del contenedor.

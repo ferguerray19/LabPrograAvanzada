@@ -1,0 +1,98 @@
+# ============================================================================
+#  TPC Sitio 3 - simulador multiproceso + receptor TCP asincrono
+#
+#    cp .env.example .env              # parametros (el .env no se versiona)
+#    mkdir -p data/raw && sudo chown -R 10001:10001 data/raw
+#    docker compose up -d --build
+#    docker compose logs -f
+#
+#  Todos los valores salen del .env. Los que van con ":-" tienen un valor por
+#  defecto para que `docker compose config` funcione aun sin .env.
+# ============================================================================
+name: ${COMPOSE_PROJECT_NAME:-lab-bigdata}
+
+# Endurecimiento comun a los dos servicios (ancla YAML, se fusiona abajo).
+x-endurecido: &endurecido
+  # Sistema de archivos raiz de solo lectura: el unico lugar escribible del
+  # ingestor es el volumen de datos; el simulador no escribe en disco.
+  read_only: true
+  tmpfs:
+    - /tmp
+  # Sin capacidades de Linux: ninguno de los dos servicios necesita abrir
+  # puertos < 1024, cambiar de usuario ni tocar la red del host.
+  cap_drop: [ALL]
+  # Un proceso no puede ganar privilegios nuevos (setuid, etc.).
+  security_opt:
+    - no-new-privileges:true
+
+services:
+
+  ingestor-tcp:
+    <<: *endurecido
+    build:
+      context: .
+      target: runtime            # etapa final del Dockerfile multi-etapa
+    image: proyecto/ingestor:v2
+    container_name: ingestor-tcp
+    # PID 1 correcto: lo resuelve el ENTRYPOINT de la imagen (tini). NO se
+    # agrega `init: true`, que pondria un SEGUNDO init (docker-init) delante
+    # de tini; tini avisa entonces que no es PID 1 ni subreaper.
+    command: ["python", "-u", "src/receptor_tcp.py"]
+    environment:
+      BIND_HOST: 0.0.0.0         # CLAVE: 127.0.0.1 seria inalcanzable desde la red
+      TCP_PORT: ${TCP_PORT:-9009}
+      DATA_DIR: ${DATA_DIR:-/app/data}
+      REPORTE_S: ${REPORTE_S:-5}
+    ports:
+      # Solo para depurar desde el host (p. ej. `nc 127.0.0.1 9009`). Se
+      # publica en el loopback del host y no en 0.0.0.0: el ingestor no
+      # queda expuesto a la red local.
+      - "127.0.0.1:${TCP_PORT:-9009}:${TCP_PORT:-9009}"
+    volumes:
+      # Bind mount -> los .jsonl viven en una ruta concreta del host y
+      # sobreviven a `docker compose down`.
+      - ${HOST_DATA_DIR:-./data/raw}:${DATA_DIR:-/app/data}
+    networks: [red-datos]
+    mem_limit: ${MEM_INGESTOR:-1g}
+    stop_grace_period: 30s       # tiempo para flush + fsync antes del SIGKILL
+    restart: unless-stopped
+    healthcheck:
+      # Verifica desde dentro que el puerto ya acepta conexiones. El receptor
+      # descarta en silencio una conexion que no envia datos.
+      test: >-
+        python -c "import socket,os;
+        socket.create_connection(('127.0.0.1', int(os.environ['TCP_PORT'])), 3).close()"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  simulador-puerto:
+    <<: *endurecido
+    build:
+      context: .
+      target: runtime
+    image: proyecto/simulador:v2
+    container_name: simulador-puerto
+    # --arch tcp: cada worker abre su propia conexion con el ingestor.
+    # --bench-csv "": el contenedor no tiene bench/mediciones.csv (y su raiz
+    # es de solo lectura); el registro de la corrida lo deja el receptor en
+    # data/raw/manifiesto_receptor.json.
+    command: ["python", "-u", "-m", "src.main", "--arch", "tcp", "--bench-csv", ""]
+    environment:
+      TCP_HOST: ${TCP_HOST:-ingestor-tcp}    # resuelve por el DNS interno de Docker
+      TCP_PORT: ${TCP_PORT:-9009}
+      TOTAL_EVENTOS: ${TOTAL_EVENTOS:-10000000}
+      N_PROCESOS: ${N_PROCESOS:-4}
+      BATCH_SIZE: ${BATCH_SIZE:-50000}
+    depends_on:
+      ingestor-tcp:
+        condition: service_healthy   # no emite hasta que el puerto acepta
+    networks: [red-datos]
+    mem_limit: ${MEM_SIMULADOR:-512m}
+    restart: "no"                    # es un job: termina y no se reinicia
+
+networks:
+  red-datos:
+    name: red-datos-lab
+    driver: bridge                   # red privada, aislada de la bridge por defecto

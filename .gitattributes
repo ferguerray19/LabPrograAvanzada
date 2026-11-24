@@ -1,0 +1,11 @@
+* text=auto
+*.py text eol=lf
+*.sh text eol=lf
+*.yml text eol=lf
+*.conf text eol=lf
+*.ipynb text eol=lf
+*.jsonl text eol=lf
+*.parquet binary
+*.png binary
+*.pdf binary
+*.docx binary

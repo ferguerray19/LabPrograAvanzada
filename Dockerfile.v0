@@ -1,0 +1,17 @@
+# ============================================================================
+#  v0 - Dockerfile INGENUO. Existe solo como linea base de la tabla
+#  comparativa de la Parte 2. NO usar en produccion. Sus cuatro defectos:
+#
+#   1. Base completa python:3.12 (~1 GB): compiladores, cabeceras y
+#      documentacion que nunca se usan en ejecucion.
+#   2. COPY . . ANTES de pip install: cambiar una linea de codigo invalida la
+#      capa de dependencias y obliga a reinstalarlas todas.
+#   3. Corre como root.
+#   4. CMD en forma shell: el PID 1 es /bin/sh -c "...", que no reenvia
+#      SIGTERM a Python. `docker stop` espera 10 s y termina con SIGKILL (137).
+# ============================================================================
+FROM python:3.12
+WORKDIR /app
+COPY . .
+RUN pip install -r requirements.txt
+CMD python src/receptor_tcp.py

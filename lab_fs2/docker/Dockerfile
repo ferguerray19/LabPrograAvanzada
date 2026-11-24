@@ -30,7 +30,10 @@ RUN pip install --no-cache-dir \
         "jupyterlab>=4.0,<5" \
         "pandas>=2.0,<3" \
         "pyarrow>=14" \
-        "matplotlib>=3.7"
+        "matplotlib>=3.7" \
+        "scipy>=1.10"
+# scipy: la usa el simulador de la Fase 1 (simulador_sitio3.ipynb) para generar
+# salida_sitio3/ dentro del mismo contenedor, sin instalar Python en Windows.
 
 # Configuración de Spark compartida por todos los nodos.
 COPY spark-defaults.conf /opt/spark/conf/spark-defaults.conf

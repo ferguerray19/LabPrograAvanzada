@@ -1,0 +1,65 @@
+{
+  "lecturas": 6395323,
+  "ventanas": 654789,
+  "features": 46,
+  "vectores_invalidos": 0,
+  "primer_dia_base": "2026-01-12",
+  "clases": [
+    {
+      "etiqueta": 0,
+      "count": 650878,
+      "%": 99.40270835337796
+    },
+    {
+      "etiqueta": 1,
+      "count": 3911,
+      "%": 0.5972916466220416
+    }
+  ],
+  "ejercicio_1": [
+    {
+      "minutos": 1,
+      "ventanas": 3264331,
+      "nulos_desv": 3191881,
+      "porcentaje_falla": 0.579230476321182,
+      "correlacion_desv_rango": 0.9920128649432686
+    },
+    {
+      "minutos": 5,
+      "ventanas": 654789,
+      "nulos_desv": 109,
+      "porcentaje_falla": 0.5972916466220416,
+      "correlacion_desv_rango": 0.9825678391123633
+    },
+    {
+      "minutos": 15,
+      "ventanas": 218288,
+      "nulos_desv": 5,
+      "porcentaje_falla": 0.6280693395880671,
+      "correlacion_desv_rango": 0.9258730002237346
+    }
+  ],
+  "ejercicio_3": {
+    "ventanas_posteriores": 560732,
+    "comparaciones_validas": 558468,
+    "z_dia1_nulos": 2264,
+    "cambio_absoluto_medio": 0.0402669388454357,
+    "cambio_absoluto_maximo": 156.9657516432054
+  },
+  "columnas_continuas": [
+    "z_prom_imp",
+    "desv_z_imp",
+    "rango_z_imp",
+    "delta_z_imp",
+    "frac_confiable",
+    "hora_sin",
+    "hora_cos"
+  ],
+  "categoricas": [
+    "variable",
+    "entidad_tipo",
+    "peor_calidad",
+    "alimentador_id"
+  ],
+  "etapas": 6
+}

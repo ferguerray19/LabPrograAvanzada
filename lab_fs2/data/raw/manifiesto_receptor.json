@@ -1,0 +1,55 @@
+{
+  "actualizado_utc": "2026-09-28T21:53:17+00:00",
+  "protocolo": "tpc-s3/1",
+  "corrida": "20260928T215306-tcp-w4",
+  "workers_anunciados": 4,
+  "total_recibido": 10000014,
+  "total_bytes": 1877676777,
+  "archivos_completos": 4,
+  "archivos": [
+    {
+      "archivo": "part-000.jsonl",
+      "worker_id": 0,
+      "anunciados": 2513970,
+      "recibidos": 2513970,
+      "bytes": 472084636,
+      "estado": "completo",
+      "completo": true,
+      "duracion_s": 9.918,
+      "mb_por_segundo": 47.6
+    },
+    {
+      "archivo": "part-001.jsonl",
+      "worker_id": 1,
+      "anunciados": 2513970,
+      "recibidos": 2513970,
+      "bytes": 472076641,
+      "estado": "completo",
+      "completo": true,
+      "duracion_s": 9.98,
+      "mb_por_segundo": 47.3
+    },
+    {
+      "archivo": "part-002.jsonl",
+      "worker_id": 2,
+      "anunciados": 2513970,
+      "recibidos": 2513970,
+      "bytes": 472080305,
+      "estado": "completo",
+      "completo": true,
+      "duracion_s": 10.202,
+      "mb_por_segundo": 46.27
+    },
+    {
+      "archivo": "part-003.jsonl",
+      "worker_id": 3,
+      "anunciados": 2458104,
+      "recibidos": 2458104,
+      "bytes": 461435195,
+      "estado": "completo",
+      "completo": true,
+      "duracion_s": 9.849,
+      "mb_por_segundo": 46.85
+    }
+  ]
+}

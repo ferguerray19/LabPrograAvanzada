@@ -178,6 +178,9 @@ class PlanCorrida:
     esquema: str
     start_method: str
     queue_maxsize: int = 64
+    #: Solo con `arch == "tcp"`: donde escucha el receptor.
+    tcp_host: str = ""
+    tcp_port: int = 0
 
     @property
     def eventos_esperados(self) -> int:
@@ -344,6 +347,42 @@ class SumideroCola:
         """No cierra nada: el centinela lo emite el worker en su `finally`,
         porque tiene que enviarse tambien cuando el bucle termina por
         excepcion."""
+
+
+class SumideroTCP:
+    """Sumidero de la Opcion C: cada worker envia sus lotes por su PROPIO
+    socket TCP al receptor asincrono (`src/receptor_tcp.py`).
+
+    Es la Opcion B con la red en medio: no hay recurso compartido entre
+    workers -cada uno tiene su conexion y el receptor le asigna su propio
+    archivo-, y tampoco hay `pickle`: lo que viaja son los bytes de las
+    lineas ya serializadas, exactamente los que iran al disco.
+
+    `sendall` bloquea cuando el buffer del socket se llena. Esa es la
+    contrapresion de esta arquitectura, y la da TCP gratis: si el receptor
+    deja de leer porque el disco no da abasto, la ventana de TCP se cierra y
+    el worker se frena, sin cola en RAM que pueda desbordarse.
+    """
+
+    __slots__ = ("sock", "lineas", "bytes")
+
+    def __init__(self, sock) -> None:
+        self.sock = sock
+        self.lineas = 0
+        self.bytes = 0
+
+    def escribir(self, lote: list[str]) -> None:
+        # Un solo `sendall` por lote: el join y el encode se pagan una vez por
+        # lote, no una vez por evento. Las lineas son ASCII (json.dumps con
+        # ensure_ascii), asi que la codificacion no cambia su longitud.
+        datos = "".join(lote).encode("utf-8")
+        self.sock.sendall(datos)
+        self.lineas += len(lote)
+        self.bytes += len(datos)
+
+    def cerrar(self) -> None:
+        """No cierra el socket: despues del ultimo lote el worker todavia
+        tiene que enviar el EOF y esperar el acuse del receptor."""
 
 
 class SumideroMemoria:

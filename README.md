@@ -1,3 +1,35 @@
+# Laboratorios de Programación Avanzada
+
+Proyecto Terminal Puerto Coquimbo, Sitio 3. Este repositorio reúne el simulador, el laboratorio Docker, el procesamiento distribuido con PySpark y la preparación de características del laboratorio 11.
+
+| Etapa | Código y ejecución | Evidencia |
+|---|---|---|
+| Fase 1: simulación y benchmarking | `src/`, `bench/`; instrucciones más abajo | `docs/reporte_benchmarking.pdf` y CSV de `bench/` |
+| Docker y receptor TCP | `Dockerfile`, `docker-compose.yml`, `lab/` en la raíz | `docs/Informe_Lab2_Docker.pdf`, `lab/evidencias/` |
+| Fase 2: PySpark | [Notebook principal](lab_fs2/fase2_pyspark.ipynb), [instrucciones](lab_fs2/README.md) | Capturas, métricas y Parquet en `lab_fs2/` |
+| Fase 3: laboratorio 11 | [Notebook de características](lab_fs2/fase3_lab11_feature_engineering.ipynb) | `lab_fs2/salida_fase3/` y `docs/Informe_Lab11.pdf` |
+
+## Ejecutar PySpark y laboratorio 11
+
+Desde PowerShell, entrar en `lab_fs2`, copiar `.env.example` a `.env` si aún no existe y ejecutar `docker compose up -d --build`. Abrir Jupyter en http://localhost:8889 con el token de laboratorio definido en `.env`. La UI del master usa http://localhost:8080 por defecto; en el equipo de integración se configuró `PUERTO_MASTER_UI=18090` porque 8080 está ocupado por otro proyecto. El cambio es local y no afecta el puerto interno 8080.
+
+La capa limpia de Fase 2 se incluye para poder ejecutar directamente el laboratorio 11. Abrir `fase3_lab11_feature_engineering.ipynb` y usar **Restart Kernel and Run All Cells**. Incluye los ejercicios 1 y 3, persistencia del Pipeline sin ajustar y comprobación de todos los vectores. No entrena un modelo predictivo.
+
+Para repetir Fase 2 también se necesitan los JSONL completos, que no se incluyen en Git. El manifiesto conserva los conteos de la corrida original. Se pueden copiar desde el respaldo local o regenerar con el simulador: desde la raíz, ejecutar `python -m src.main --workers 4 --total-events 10000000 --output-dir lab_fs2/data/raw --arch shard --batch-size 50000 --seed 42 --start-time 2026-08-24T00:00:00Z`. Esto reproduce el contrato y volumen; los tiempos y metadatos de transporte del manifiesto TCP histórico no se sustituyen por esa regeneración. Después, desde `lab_fs2`, ejecutar `docker compose exec jupyter python3 verificar_cluster.py` y el notebook completo de Fase 2.
+
+Los dos Compose son distintos: el de la raíz ejecuta simulador/receptor TCP; el de `lab_fs2` ejecuta Spark/Jupyter. Ejecutar cada comando desde su carpeta. No mantener dos sesiones Spark ocupando los mismos executors; cerrar la anterior con `spark.stop()`.
+
+## Conservación y reproducibilidad
+
+- Se conservan los informes originales y las capturas anteriores en `docs/evidencias_historicas/`. El informe parcial original del laboratorio 11 no es la entrega final.
+- `lab_fs2/historico/` conserva los notebooks y datos pequeños de la versión anterior de GitHub. No son el punto de entrada actual.
+- Las guías están en `docs/guias/` y la rúbrica de Fase 2 en `lab_fs2/`.
+- `.env`, checkpoints, cachés y los JSONL masivos quedan fuera de Git. Se versionan ejemplos de configuración, muestra, manifiestos, evidencias, métricas y Parquet de las capas que permiten continuar el laboratorio.
+- La línea base del ejemplo principal de laboratorio 11 usa todos los días. Para evaluar un modelo temporal debe recalcularse únicamente con entrenamiento; el ejercicio 3 cuantifica el cambio al usar solo el primer día. Guardar un Pipeline sin ajustar no elimina la fuga de características calculadas previamente con datos futuros.
+- Las pruebas TCP usan señales POSIX y deben ejecutarse en Linux/WSL o Docker. La sección siguiente conserva las instrucciones y resultados de Fase 1; para probar todo en Windows, usar el contenedor Linux descrito en `docs/VALIDACION_2026_11_24.txt`.
+
+## Documentación del simulador y benchmarking
+
 # Generador de logs crudos masivos — TPC Sitio 3, Fase 1
 
 Simulador de la telemetría del Sitio 3 del Terminal Puerto Coquimbo. Genera un
@@ -7,8 +39,9 @@ para que la Fase 2 tenga algo real que detectar. Están implementadas las dos
 arquitecturas de escritura concurrente de la guía, detrás de la misma interfaz.
 
 **Instalación.** No hay instalación. El generador se escribe exclusivamente con
-la biblioteca estándar de Python 3.11 o superior: no hay `requirements.txt`, no
-hay entorno virtual obligatorio y no hay dependencias que resolver. La única
+la biblioteca estándar de Python 3.11 o superior: `requirements.txt` existe solo
+para el Dockerfile y está vacío, no hay entorno virtual obligatorio y no hay
+dependencias que resolver. La única
 excepción es `matplotlib`, que se usa únicamente en `bench/graficos.py` para
 producir las figuras del informe y no forma parte del simulador; si sólo se
 quiere regenerar el dataset, no hace falta instalarlo. Basta con clonar el
@@ -27,7 +60,10 @@ python -m src.main --workers 8 --total-events 10000000 \
 ```
 
 Todo es parametrizable por línea de comandos y no hay constantes escondidas en
-el código. Con la misma semilla y el mismo número de trabajadores, dos
+el código. En Docker, `--workers`, `--total-events`, `--batch-size`,
+`--tcp-host` y `--tcp-port` toman su valor por defecto de `N_PROCESOS`,
+`TOTAL_EVENTOS`, `BATCH_SIZE`, `TCP_HOST` y `TCP_PORT`; fuera de Docker esas
+variables no existen y los valores por defecto son los de la tabla. Con la misma semilla y el mismo número de trabajadores, dos
 ejecuciones de `--arch shard` producen archivos byte a byte idénticos, porque
 la base temporal la fija `--start-time` y no el reloj del sistema. El programa
 valida sus argumentos antes de escribir nada: rechaza un número de procesos
@@ -78,8 +114,9 @@ exactamente el mismo multiconjunto de eventos con la misma semilla.
 | `--total-events` | `10000000` | Piso de eventos; el total real redondea hacia arriba al tick completo |
 | `--sim-days` | — | Si se indica, la ventana simulada manda sobre `--total-events` |
 | `--output-dir` | `data/raw` | Carpeta de salida |
-| `--arch` | `shard` | `shard` o `queue` |
-| `--batch-size` | `10000` | Eventos por lote antes de cada `writelines` o cada `put` |
+| `--arch` | `shard` | `shard`, `queue` o `tcp` (envía al receptor TCP) |
+| `--batch-size` | `10000` | Eventos por lote antes de cada `writelines`, `put` o `sendall` |
+| `--tcp-host` / `--tcp-port` | `127.0.0.1` / `9009` | Sólo con `tcp`: dónde escucha el receptor |
 | `--queue-maxsize` | `64` | Sólo con `queue`: mensajes máximos en la cola. Acota la RAM en ~`maxsize × batch-size` eventos |
 | `--seed` | `42` | Semilla maestra |
 | `--start-time` | `2026-08-24T00:00:00Z` | Instante inicial simulado. Constante, nunca el reloj del sistema |
@@ -281,6 +318,37 @@ procesos (5), comparación arquitectónica (6) y efecto del lote sobre el
 simulador completo (7). Todas con ejes rotulados y unidades, porque un informe
 de ingeniería no se sustenta en capturas del terminal.
 
+## Laboratorio Docker (simulador + receptor TCP en contenedores)
+
+El mismo simulador corre en Docker Compose como dos servicios sobre una red
+privada: `simulador-puerto` genera los eventos con `--arch tcp` (cada worker
+abre su propia conexión) y `ingestor-tcp` (`src/receptor_tcp.py`, `asyncio`) los
+recibe y los escribe en `data/raw/` del host mediante un bind mount. El receptor
+solo confirma cada conexión después de `flush` + `fsync`, y el simulador solo
+termina con código 0 si todas las confirmaciones cuadran.
+
+```bash
+cp .env.example .env
+mkdir -p data/raw && sudo chown -R 10001:10001 data/raw   # la imagen corre como UID 10001
+docker compose up -d --build
+docker compose logs -f                                    # progreso en vivo
+wc -l data/raw/*.jsonl                                    # 10000014 total
+docker compose down                                       # los datos quedan en el host
+```
+
+Para las evidencias del laboratorio hay un script por parte; cada uno muestra
+los comandos de la guía, los ejecuta y guarda la salida en `lab/evidencias/`:
+
+```bash
+bash lab/parte1.sh             # namespaces, IP virtual, OOM killer (137)
+bash lab/parte2.sh             # .dockerignore, v0/v1/v2, caché, UID 10001, stop 137 vs 143
+bash lab/parte3.sh --limpiar   # Compose, red privada, 10 M eventos, persistencia tras down
+bash lab/limite_ingestor.sh    # cuánta memoria necesita el ingestor
+```
+
+El informe con los ocho entregables, las mediciones y los análisis está en
+`docs/informe_lab_docker.md`.
+
 ## Estructura
 
 ```
@@ -289,6 +357,8 @@ src/simulador.py       modelos físicos con estado de cada familia de activo
 src/esquema.py         contratos, formateo de tiempo, reparto, sumideros, bucle común
 src/arquitectura_b.py  Opción B: un .jsonl por proceso (archivos segmentados)
 src/arquitectura_a.py  Opción A: proceso escritor único alimentado por cola
+src/arquitectura_tcp.py Opción C: cada worker envía por TCP al receptor
+src/receptor_tcp.py    receptor TCP asíncrono (servicio ingestor-tcp)
 bench/campana.py       los cuatro barridos experimentales
 bench/resumen.py       agrega mediciones.csv en la tabla del informe
 bench/micro_pickle.py  costo del canal IPC aislado, por tamaño de lote
@@ -296,6 +366,12 @@ bench/donde_pickle.py  cuenta las llamadas reales a pickle de cada arquitectura
 bench/validar.py       validación del dataset completo
 bench/test_formato.py  tests del contrato de datos, del reparto y de la física
 bench/graficos.py      figuras del informe (único lugar donde se usa matplotlib)
+Dockerfile             imagen v2: multi-etapa, tini, usuario 10001
+Dockerfile.v0/.v1      líneas base de la tabla comparativa del laboratorio
+docker-compose.yml     ingestor-tcp + simulador-puerto sobre red-datos-lab
+.env.example           parámetros de Compose (se copia a .env)
+lab/                   scripts de evidencia del laboratorio Docker y memory_bomb.py
+docs/informe_lab_docker.md  informe del laboratorio Docker
 ```
 
 ## Inventario simulado

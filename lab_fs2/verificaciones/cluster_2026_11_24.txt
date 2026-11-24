@@ -1,0 +1,18 @@
+WARNING: Using incubator modules: jdk.incubator.vector
+Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+26/11/24 20:55:30 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+[1/4] Sesión creada
+      Spark   : 4.0.1
+      Python  : 3.10.12
+      Master  : spark://spark-master:7077
+[2/4] Executors vivos : 2 (workers vivos en el master: 2)
+      Paralelismo     : 4 tareas en paralelo
+[3/4] Visibilidad de /opt/workspace/data/raw desde los executors:
+      76c82033d037                   ve los datos
+      90f1ff8f9688                   ve los datos
+[4/4] Leyendo los datos crudos de la Fase 1...
+      Registros leídos : 10,000,014
+      Particiones      : 15
+Clúster OK: las 4 comprobaciones pasaron.

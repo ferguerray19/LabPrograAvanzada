@@ -1,0 +1,73 @@
+# 2026-09-28 19:25:03  MINGW64_NT-10.0-26200 3.6.9-b4195d69.x86_64 x86_64  Docker version 29.8.1, build 4a63305
+
+$ docker version --format 'Cliente {{.Client.Version}} / Engine {{.Server.Version}}'
+Cliente 29.8.1 / Engine 29.8.1
+BASE="/var/tmp/lab2-permisos"   # carpeta en el sistema de archivos Linux de la VM de Docker
+EVENTOS="200000"
+AUX="docker run --rm -v /var/tmp/lab2-permisos:/w python:3.12-slim"   # contenedor auxiliar con la carpeta Linux montada en /w
+
+==================================================================
+  Preparacion: carpeta de datos en un sistema de archivos Linux nativo
+==================================================================
+
+$ $AUX sh -c 'mkdir -p /w/raw && chmod 755 /w/raw && df -T /w | tail -n 1 && ls -lnd /w/raw'
+tmpfs          tmpfs   4007508    16   4007492   1% /w
+drwxr-xr-x 2 0 0 40 Sep 28 22:25 /w/raw
+(dueno UID 0, permisos 755: el UID 10001 del contenedor NO puede escribir)
+
+==================================================================
+  A) SIN chown: el ingestor corre como UID 10001 y la carpeta es de root
+==================================================================
+
+$ $AUX ls -lnd /w/raw
+drwxr-xr-x 2 0 0 40 Sep 28 22:25 /w/raw
+
+$ HOST_DATA_DIR=$BASE/raw TOTAL_EVENTOS=$EVENTOS docker compose up -d --no-build 2>&1 | tail -n 4
+ Container ingestor-tcp Started 
+ Container ingestor-tcp Waiting 
+ Container ingestor-tcp Error dependency ingestor-tcp failed to start
+dependency failed to start: container ingestor-tcp is unhealthy
+
+$ docker compose ps -a --format 'table {{.Name}}\t{{.Status}}'
+NAME               STATUS
+ingestor-tcp       Up Less than a second (health: starting)
+simulador-puerto   Created
+
+$ docker compose logs --no-log-prefix ingestor-tcp 2>&1 | grep -E 'ERROR|escuchando' | head -n 2
+2026-09-28 22:25:06,862 ERROR   receptor: sin permiso de escritura en /app/data (uid 10001). En el host: sudo chown -R 10001:10001 <carpeta montada>
+2026-09-28 22:25:07,455 ERROR   receptor: sin permiso de escritura en /app/data (uid 10001). En el host: sudo chown -R 10001:10001 <carpeta montada>
+
+$ docker inspect ingestor-tcp --format 'ingestor-tcp RestartCount={{.RestartCount}} ExitCode={{.State.ExitCode}}'
+ingestor-tcp RestartCount=4 ExitCode=1
+
+$ $AUX ls -ln /w/raw
+total 0
+(sin archivos: no se escribio nada)
+
+==================================================================
+  B) CON chown -R 10001:10001: el mismo stack completa la ingesta
+==================================================================
+
+$ $AUX sh -c 'chown -R 10001:10001 /w/raw && ls -lnd /w/raw'
+drwxr-xr-x 2 10001 10001 40 Sep 28 22:25 /w/raw
+
+$ HOST_DATA_DIR=$BASE/raw TOTAL_EVENTOS=$EVENTOS docker compose up -d --no-build 2>&1 | tail -n 2
+ Container simulador-puerto Starting 
+ Container simulador-puerto Started 
+
+simulador-puerto termino con codigo 0
+
+$ docker compose logs --no-log-prefix simulador-puerto 2>&1 | tail -n 1
+2026-09-28 22:25:17,336 INFO    [MainProcess] tpc: OK: 200122 eventos, 0.04 GB, 0.23 s (856479 ev/s, 159.2 MB/s). Total de pared 0.24 s.
+
+$ $AUX sh -c 'ls -ln /w/raw && cat /w/raw/*.jsonl | wc -l'
+total 36348
+-rw-r--r-- 1 10001 10001    1271 Sep 28 22:25 manifiesto_receptor.json
+-rw-r--r-- 1 10001 10001 9354537 Sep 28 22:25 part-000.jsonl
+-rw-r--r-- 1 10001 10001 9354863 Sep 28 22:25 part-001.jsonl
+-rw-r--r-- 1 10001 10001 9355874 Sep 28 22:25 part-002.jsonl
+-rw-r--r-- 1 10001 10001 9144307 Sep 28 22:25 part-003.jsonl
+200122
+(los archivos pertenecen al UID/GID 10001: los escribio appuser)
+
+Evidencia completa en lab/evidencias/permisos_linux.txt

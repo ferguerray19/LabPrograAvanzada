@@ -1,0 +1,324 @@
+# 2026-09-28 19:16:25  MINGW64_NT-10.0-26200 3.6.9-b4195d69.x86_64 x86_64  Docker version 29.8.1, build 4a63305
+
+$ docker version --format 'Cliente {{.Client.Version}} / Engine {{.Server.Version}}'
+Cliente 29.8.1 / Engine 29.8.1
+
+==================================================================
+  Imagenes base: se descargan ANTES para no medir la descarga como build
+==================================================================
+
+$ docker pull -q python:3.12 && docker pull -q python:3.12-slim
+docker.io/library/python:3.12
+docker.io/library/python:3.12-slim
+
+==================================================================
+  2.1 .dockerignore: contexto enviado al daemon, antes y despues
+==================================================================
+
+$ du -sh .
+1.8G	.
+
+$ du -sh data
+1.8G	data
+
+--- SIN .dockerignore (se aparta temporalmente) ---
+
+$ docker build --no-cache --progress=plain -t prueba-contexto -f Dockerfile.v0 . 2>&1 | grep -i 'transferring context' | tail -n 1
+#5 transferring context: 1.89GB 121.3s done
+
+$ docker images prueba-contexto --format 'tamano de la imagen resultante: {{.Size}}'
+tamano de la imagen resultante: 3.57GB
+
+--- CON .dockerignore ---
+
+$ docker build --no-cache --progress=plain -t prueba-contexto -f Dockerfile.v0 . 2>&1 | grep -i 'transferring context' | tail -n 1
+#5 transferring context: 285.42kB 0.0s done
+
+$ docker images prueba-contexto --format 'tamano de la imagen resultante: {{.Size}}'
+tamano de la imagen resultante: 1.61GB
+
+==================================================================
+  2.2 / 2.4 Builds en frio (--no-cache), 3 repeticiones
+==================================================================
+
+$ time docker build --no-cache -t proyecto:v0 -f Dockerfile.v0 .    # frio, repeticion 1
+real 2.0s   (log: lab/evidencias/build_v0_frio_r1.log)
+
+$ time docker build --no-cache -t proyecto:v1 -f Dockerfile.v1 .    # frio, repeticion 1
+real 1.7s   (log: lab/evidencias/build_v1_frio_r1.log)
+
+$ time docker build --no-cache -t proyecto:v2 -f Dockerfile .    # frio, repeticion 1
+real 77.8s   (log: lab/evidencias/build_v2_frio_r1.log)
+
+$ time docker build --no-cache -t proyecto:v0 -f Dockerfile.v0 .    # frio, repeticion 2
+real 2.0s   (log: lab/evidencias/build_v0_frio_r2.log)
+
+$ time docker build --no-cache -t proyecto:v1 -f Dockerfile.v1 .    # frio, repeticion 2
+real 1.5s   (log: lab/evidencias/build_v1_frio_r2.log)
+
+$ time docker build --no-cache -t proyecto:v2 -f Dockerfile .    # frio, repeticion 2
+real 14.1s   (log: lab/evidencias/build_v2_frio_r2.log)
+
+$ time docker build --no-cache -t proyecto:v0 -f Dockerfile.v0 .    # frio, repeticion 3
+real 2.0s   (log: lab/evidencias/build_v0_frio_r3.log)
+
+$ time docker build --no-cache -t proyecto:v1 -f Dockerfile.v1 .    # frio, repeticion 3
+real 1.5s   (log: lab/evidencias/build_v1_frio_r3.log)
+
+$ time docker build --no-cache -t proyecto:v2 -f Dockerfile .    # frio, repeticion 3
+real 60.2s   (log: lab/evidencias/build_v2_frio_r3.log)
+
+$ docker images proyecto --format 'table {{.Tag}}\t{{.Size}}'
+TAG       SIZE
+v2        179MB
+v1        178MB
+v0        1.61GB
+
+$ docker history proyecto:v2 --format 'table {{.Size}}\t{{.CreatedBy}}' | head -n 12
+SIZE      CREATED BY
+0B        CMD ["python" "-u" "src/receptor_tcp.py"]
+0B        ENTRYPOINT ["/usr/bin/tini" "--"]
+0B        EXPOSE [9009/tcp]
+0B        USER appuser
+12.3kB    RUN /bin/sh -c mkdir -p /app/data && chown a…
+336kB     COPY src/ ./src/ # buildkit
+65.5kB    COPY /opt/venv /opt/venv # buildkit
+8.19kB    WORKDIR /app
+49.2kB    RUN /bin/sh -c groupadd --gid 10001 appgroup…
+1.22MB    RUN /bin/sh -c apt-get update  && apt-get in…
+0B        ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECO…
+
+==================================================================
+  2.4 Prueba de la cache: cambiar UNA linea de src/receptor_tcp.py, 3 repeticiones
+==================================================================
+
+$ echo '# comentario de prueba 1' >> src/receptor_tcp.py
+
+$ time docker build -t proyecto:v0 -f Dockerfile.v0 .    # rebuild, repeticion 1
+real 2.0s   (log: lab/evidencias/build_v0_rebuild_r1.log)
+
+$ time docker build -t proyecto:v1 -f Dockerfile.v1 .    # rebuild, repeticion 1
+real 0.6s   (log: lab/evidencias/build_v1_rebuild_r1.log)
+
+$ time docker build -t proyecto:v2 -f Dockerfile .    # rebuild, repeticion 1
+real 2.3s   (log: lab/evidencias/build_v2_rebuild_r1.log)
+
+$ echo '# comentario de prueba 2' >> src/receptor_tcp.py
+
+$ time docker build -t proyecto:v0 -f Dockerfile.v0 .    # rebuild, repeticion 2
+real 2.0s   (log: lab/evidencias/build_v0_rebuild_r2.log)
+
+$ time docker build -t proyecto:v1 -f Dockerfile.v1 .    # rebuild, repeticion 2
+real 0.6s   (log: lab/evidencias/build_v1_rebuild_r2.log)
+
+$ time docker build -t proyecto:v2 -f Dockerfile .    # rebuild, repeticion 2
+real 1.5s   (log: lab/evidencias/build_v2_rebuild_r2.log)
+
+$ echo '# comentario de prueba 3' >> src/receptor_tcp.py
+
+$ time docker build -t proyecto:v0 -f Dockerfile.v0 .    # rebuild, repeticion 3
+real 2.0s   (log: lab/evidencias/build_v0_rebuild_r3.log)
+
+$ time docker build -t proyecto:v1 -f Dockerfile.v1 .    # rebuild, repeticion 3
+real 0.6s   (log: lab/evidencias/build_v1_rebuild_r3.log)
+
+$ time docker build -t proyecto:v2 -f Dockerfile .    # rebuild, repeticion 3
+real 1.6s   (log: lab/evidencias/build_v2_rebuild_r3.log)
+(src/receptor_tcp.py restaurado)
+
+Capa 'pip install' en cada rebuild (segundos si se ejecuto, CACHED si se reutilizo):
+  repeticion 1:  v0 1.1s   v1 CACHED   v2 CACHED
+  repeticion 2:  v0 1.1s   v1 CACHED   v2 CACHED
+  repeticion 3:  v0 1.1s   v1 CACHED   v2 CACHED
+
+Tiempo de cada paso del rebuild de v2 (repeticion 1, del log --progress=plain):
+0.0s     [internal] load build definition from Dockerfile
+0.7s     resolve image config for docker-image://docker.io/docker/dockerfile:1
+CACHED   docker-image://docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a
+0.6s     [internal] load metadata for docker.io/library/python:3.12-slim
+0.0s     [internal] load .dockerignore
+0.0s     [builder 1/5] FROM docker.io/library/python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8b
+0.0s     [internal] load build context
+CACHED   [runtime 2/7] RUN apt-get update  && apt-get install -y --no-install-recommends tini  && rm -rf
+CACHED   [runtime 4/7] WORKDIR /app
+CACHED   [builder 2/5] RUN python -m venv --without-pip /opt/venv
+CACHED   [runtime 3/7] RUN groupadd --gid 10001 appgroup  && useradd --uid 10001 --gid appgroup --no-cre
+CACHED   [builder 3/5] WORKDIR /app
+CACHED   [builder 5/5] RUN pip --python /opt/venv/bin/python install --no-cache-dir -r requirements.txt
+CACHED   [builder 4/5] COPY requirements.txt .
+CACHED   [runtime 5/7] COPY --from=builder /opt/venv /opt/venv
+0.0s     [runtime 6/7] COPY src/ ./src/
+0.2s     [runtime 7/7] RUN mkdir -p /app/data && chown appuser:appgroup /app/data
+0.1s     exporting to image
+
+Tiempo de cada paso del rebuild de v0 (repeticion 1):
+0.0s     [internal] load build definition from Dockerfile.v0
+0.0s     [internal] load metadata for docker.io/library/python:3.12
+0.0s     [internal] load .dockerignore
+0.0s     [1/4] FROM docker.io/library/python:3.12@sha256:4d1caded1f729ae443eb803f26ffde7b61e696aeaef62f0
+0.0s     [internal] load build context
+CACHED   [2/4] WORKDIR /app
+0.0s     [3/4] COPY . .
+1.1s     [4/4] RUN pip install -r requirements.txt
+0.4s     exporting to image
+
+==================================================================
+  2.4 Hardening: usuario sin privilegios y venv
+==================================================================
+
+$ docker run --rm --entrypoint sh proyecto:v2 -c 'id && which python'
+uid=10001(appuser) gid=10001(appgroup) groups=10001(appgroup)
+/opt/venv/bin/python
+
+$ docker run --rm --entrypoint sh proyecto:v0 -c 'id && which python'
+uid=0(root) gid=0(root) groups=0(root)
+/usr/local/bin/python
+
+El codigo es de root y appuser no lo puede modificar:
+
+$ docker run --rm --entrypoint sh proyecto:v2 -c 'ls -ld /app/src /app/data; touch /app/src/x'
+drwxr-xr-x 2 appuser appgroup 4096 Sep 28 22:21 /app/data
+drwxr-xr-x 3 root    root     4096 Sep 28 22:21 /app/src
+touch: cannot touch '/app/src/x': Permission denied
+
+==================================================================
+  2.4 Plazo de docker stop que asigna este Docker (sin --stop-timeout)
+==================================================================
+
+$ docker run -d --name probe-timeout proyecto:v0
+e44a49f1505305b06a8ca7d3ea4ff30fd113962fa277a36ea7b468b22f5c4b56
+
+$ docker inspect probe-timeout --format 'StopTimeout={{.Config.StopTimeout}}'
+StopTimeout=<nil>
+
+$ docker rm -f probe-timeout
+probe-timeout
+
+==================================================================
+  2.4 SIGTERM en el PID 1: docker stop sin init (v0) y con init (v2), plazo por defecto
+==================================================================
+Quien es el PID 1 en cada uno:
+
+$ docker exec sin-init cat /proc/1/cmdline | tr '\0' ' '; echo
+/bin/sh -c python src/receptor_tcp.py 
+
+$ docker exec con-init cat /proc/1/cmdline | tr '\0' ' '; echo
+/usr/bin/tini -- python -u src/receptor_tcp.py 
+
+$ docker run -d --name sin-init proyecto:v0
+91d7f933c14145c0a3258f90e28077dcd61f39decbf8d7718eec82445e190911
+
+$ docker run -d --name con-init proyecto:v2
+432a6ae828f343627a38fd9e1ef104320f9f2f0bcb2d6b08907ea25b835a3ca1
+
+$ docker inspect sin-init con-init --format '{{.Name}} StopTimeout={{.Config.StopTimeout}}'
+/sin-init StopTimeout=<nil>
+/con-init StopTimeout=<nil>
+
+$ docker stop sin-init
+sin-init
+real 3.4s
+
+$ docker stop con-init
+con-init
+real 0.4s
+
+$ docker inspect sin-init --format 'ExitCode={{.State.ExitCode}}'
+ExitCode=137
+
+$ docker inspect con-init --format 'ExitCode={{.State.ExitCode}}'
+ExitCode=143
+
+Lo que el receptor alcanzo a decir antes de salir:
+
+$ docker logs sin-init 2>&1 | tail -n 2
+2026-09-28 22:21:52,908 INFO    receptor: escuchando en 0.0.0.0:9009 | escribiendo en /app/data/raw | pid 7
+
+$ docker logs con-init 2>&1 | tail -n 2
+2026-09-28 22:22:00,236 INFO    receptor: SIGTERM recibido: cerrando sockets y haciendo flush del .jsonl
+2026-09-28 22:22:00,236 INFO    receptor: apagado limpio: 0 eventos persistidos en esta sesion
+
+==================================================================
+  2.4 Plazo que aplica el daemon sin --stop-timeout (docker events, 3 repeticiones)
+==================================================================
+repeticion 1: docker stop sin-init-def (v0, sin --stop-timeout)
+  evento: 1790634125694828487 signal=15
+  evento: 1790634128714346524 signal=9
+  plazo SIGTERM->SIGKILL segun el daemon: 3.02 s | time docker stop: 3.4 s | ExitCode=137
+repeticion 2: docker stop sin-init-def (v0, sin --stop-timeout)
+  evento: 1790634134143792788 signal=15
+  evento: 1790634137163691066 signal=9
+  plazo SIGTERM->SIGKILL segun el daemon: 3.02 s | time docker stop: 3.4 s | ExitCode=137
+repeticion 3: docker stop sin-init-def (v0, sin --stop-timeout)
+  evento: 1790634142593006816 signal=15
+  evento: 1790634145614502442 signal=9
+  plazo SIGTERM->SIGKILL segun el daemon: 3.02 s | time docker stop: 3.4 s | ExitCode=137
+(eventos guardados en lab/evidencias/stop_events_default.txt)
+
+==================================================================
+  2.4 SIGTERM en el PID 1 con el plazo estandar de 10 s (--stop-timeout 10)
+==================================================================
+
+$ docker run -d --stop-timeout 10 --name sin-init-10 proyecto:v0
+756e5c97c1e1a5a63be55854c2d3a8253035c78f6a6127d7cccc11a92c5b4971
+
+$ docker run -d --stop-timeout 10 --name con-init-10 proyecto:v2
+05a2c9620f81bcffdbe3119543a1b5e82242a77ae0712dc912a5d532b6c77bf0
+
+$ docker inspect sin-init-10 con-init-10 --format '{{.Name}} StopTimeout={{.Config.StopTimeout}}'
+/sin-init-10 StopTimeout=10
+/con-init-10 StopTimeout=10
+
+$ docker stop sin-init-10
+sin-init-10
+real 10.4s
+
+$ docker stop con-init-10
+con-init-10
+real 0.4s
+
+$ docker inspect sin-init-10 --format 'ExitCode={{.State.ExitCode}}'
+ExitCode=137
+
+$ docker inspect con-init-10 --format 'ExitCode={{.State.ExitCode}}'
+ExitCode=143
+
+Lo que el receptor alcanzo a decir antes de salir:
+
+$ docker logs sin-init-10 2>&1 | tail -n 2
+2026-09-28 22:22:28,038 INFO    receptor: escuchando en 0.0.0.0:9009 | escribiendo en /app/data/raw | pid 7
+
+$ docker logs con-init-10 2>&1 | tail -n 2
+2026-09-28 22:22:42,318 INFO    receptor: SIGTERM recibido: cerrando sockets y haciendo flush del .jsonl
+2026-09-28 22:22:42,318 INFO    receptor: apagado limpio: 0 eventos persistidos en esta sesion
+
+==================================================================
+  2.5 Tabla comparativa (mediciones propias, mediana de 3)
+==================================================================
+| Version | Estrategia | Tamano final | Build en frio (mediana) | Rebuild tras 1 linea (mediana) | Capa pip install en el rebuild |
+|---|---|---|---|---|---|
+| v0 | python:3.12 + COPY . . + root | 1.61GB | 2.0 s | 2.0 s | se ejecuta (1.1 s) |
+| v1 | python:3.12-slim, una etapa, requirements primero | 178MB | 1.5 s | 0.6 s | CACHED |
+| v2 | Multi-etapa + venv + tini + usuario 10001 | 179MB | 60.2 s | 1.6 s | CACHED |
+| Δ v0→v2 | Reduccion obtenida | -89 % | — | -20 % | — |
+
+Repeticiones (s): frio v0 2.0 / 2.0 / 2.0, v1 1.7 / 1.5 / 1.5, v2 77.8 / 14.1 / 60.2;
+rebuild v0 2.0 / 2.0 / 2.0, v1 0.6 / 0.6 / 0.6, v2 2.3 / 1.5 / 1.6.
+
+| Prueba de docker stop | StopTimeout | Tiempo | ExitCode |
+|---|---|---|---|
+| sin-init (v0, PID 1 = /bin/sh) | por defecto (<nil>) | 3.4 s | 137 |
+| con-init (v2, PID 1 = tini) | por defecto (<nil>) | 0.4 s | 143 |
+| sin-init-10 (v0) | 10 | 10.4 s | 137 |
+| con-init-10 (v2) | 10 | 0.4 s | 143 |
+
+
+$ docker images --format 'table {{.Repository}}:{{.Tag}}\t{{.Size}}\t{{.CreatedAt}}' | grep -E 'proyecto|REPOSITORY'
+REPOSITORY:TAG          SIZE      CREATED AT
+proyecto:v2             179MB     2026-09-28 19:21:44 -0300 -03
+proyecto:v1             178MB     2026-09-28 19:21:43 -0300 -03
+proyecto:v0             1.61GB    2026-09-28 19:21:42 -0300 -03
+proyecto/ingestor:v2    179MB     2026-09-28 18:51:22 -0300 -03
+proyecto/simulador:v2   179MB     2026-09-28 18:51:22 -0300 -03
+
+Evidencia completa en lab/evidencias/parte2.txt y lab/evidencias/parte2_tabla.md
